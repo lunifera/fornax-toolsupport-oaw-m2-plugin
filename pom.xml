@@ -9,7 +9,7 @@
     <groupId>org.fornax.toolsupport</groupId>
     <artifactId>fornax-oaw-m2-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>3.0.3-SNAPSHOT</version>
+    <version>3.0.3</version>
     <name>oAW-M2-Plugin</name>
     <description> The Maven2-Plugin for the
 		openArchitectureWare-Generator-Framework (oAW4.x / Eclipse MWE) 
@@ -65,12 +65,12 @@
     </contributors>
     <scm>
         <connection>
-			scm:svn:https://fornax.svn.sourceforge.net/svnroot/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/trunk
+			scm:svn:https://fornax.svn.sourceforge.net/svnroot/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/tags/3.0.3
 		</connection>
         <developerConnection>
-			scm:svn:https://fornax.svn.sourceforge.net/svnroot/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/trunk
+			scm:svn:https://fornax.svn.sourceforge.net/svnroot/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/tags/3.0.3
 		</developerConnection>
-        <url>http://fisheye3.cenqua.com/browse/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/trunk</url>
+        <url>http://fisheye3.cenqua.com/browse/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/tags/3.0.3</url>
     </scm>
     <dependencies>
         <dependency>
