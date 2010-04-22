@@ -16,8 +16,8 @@ package org.fornax.toolsupport.maven2;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -34,6 +34,9 @@ import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.classworlds.ClassRealm;
+import org.codehaus.classworlds.ClassWorld;
+import org.codehaus.classworlds.DuplicateRealmException;
 import org.codehaus.plexus.util.FileUtils;
 
 
@@ -52,14 +55,16 @@ import org.codehaus.plexus.util.FileUtils;
  * @author Karsten Thoms <karsten.thoms@itemis.de>
  */
 public class WorkflowMojo extends AbstractMojo {
-	private static final String MOJO_VERSION = "3.0.3-SNAPSHOT";
-	private static final String WFENGINE_OAW = "oaw";
-	private static final String WFENGINE_MWE = "mwe";
+	private static final String MOJO_VERSION = "3.1.0-SNAPSHOT";
+	public static final String WFENGINE_OAW = "oaw";
+	public static final String WFENGINE_MWE = "mwe";
+	public static final String WFENGINE_MWE2 = "mwe2";
 	// Standard classes for invocation 
-	private static final String OAW_WORKFLOWRUNNER = "org.openarchitectureware.workflow.WorkflowRunner";
-	private static final String OAW_PROGRESSMONITOR = "org.openarchitectureware.workflow.monitor.NullProgressMonitor";
-	private static final String MWE_WORKFLOWRUNNER = "org.eclipse.emf.mwe.core.WorkflowRunner";
-	private static final String MWE_PROGRESSMONITOR = "org.eclipse.emf.mwe.core.monitor.NullProgressMonitor";
+	public static final String OAW_WORKFLOWRUNNER = "org.openarchitectureware.workflow.WorkflowRunner";
+	public static final String OAW_PROGRESSMONITOR = "org.openarchitectureware.workflow.monitor.NullProgressMonitor";
+	public static final String MWE_WORKFLOWRUNNER = "org.eclipse.emf.mwe.core.WorkflowRunner";
+	public static final String MWE_PROGRESSMONITOR = "org.eclipse.emf.mwe.core.monitor.NullProgressMonitor";
+	public static final String MWE2_WORKFLOWRUNNER = "org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher";
 
 	/**
      * The project itself. This parameter is set by maven.
@@ -77,7 +82,9 @@ public class WorkflowMojo extends AbstractMojo {
 
     /**
      * The name of the workflow descriptor.
-     * @parameter default-value="workflow.oaw"
+     * <p>
+     * <i>Only supported for workflow engine 'oaw' and 'mwe'</i>
+     * @parameter default-value="workflow.mwe"
      * @required
      */
     private String workflowDescriptor;
@@ -211,9 +218,10 @@ public class WorkflowMojo extends AbstractMojo {
      * The Workflow Engine type to execute.
      * <ul>
      * <li><tt>oaw</tt>: openArchitectureWare 4.x
-     * <li><tt>mwe</tt>: Eclipse Model Workflow Engine
+     * <li><tt>mwe</tt>: Eclipse Model Workflow Engine (MWE)
+     * <li><tt>mwe2</tt>: Eclipse Model Workflow Engine 2 (MWE2)
      * </ul>
-     * @parameter default-value="oaw"
+     * @parameter default-value="mwe"
      * @required
      */
     private String workflowEngine;
@@ -248,21 +256,19 @@ public class WorkflowMojo extends AbstractMojo {
 		MojoWorkflowRunner wfr = null;
 		Map<String,String> params = new HashMap<String,String>();
 
-		getLog().info("Fornax oAW/MWE Maven2 Plugin V"+MOJO_VERSION);
+		getLog().info("Fornax oAW/MWE/MWE2 Maven2 Plugin V"+MOJO_VERSION);
+
+		// Check workflowEngine parameter
+		if (!WFENGINE_OAW.equals(workflowEngine) && !WFENGINE_MWE.equals(workflowEngine) && !WFENGINE_MWE2.equals(workflowEngine)) {
+			throw new IllegalArgumentException ("Illegal value specified for parameter workflowEngine");
+		}
+
+		wfr = new MojoWorkflowRunner();
+		wfr.setLog(getLog());
+
 		if ("true".equals(System.getProperty("fornax.generator.omit.execution"))) {
 			getLog().info("Omitting workflow execution.");
 			return;
-		}
-
-		// Prove for default workflowDescriptor. If workflowEngine is set to "mwe"
-		// replace default value by "workflow.mwe"
-		if ("workflow.oaw".equals(workflowDescriptor) && "mwe".equals(workflowEngine)) {
-			workflowDescriptor = "workflow.mwe";
-		}
-		
-		if (getWorkflowDescriptorRoot() == null){
-			throw new MojoExecutionException("Could not find the Workflow-Descriptor \""
-					+workflowDescriptor+"\".");
 		}
 
 		if ("true".equalsIgnoreCase(
@@ -275,29 +281,8 @@ public class WorkflowMojo extends AbstractMojo {
 		}
 
 		if (!isUpToDate()){
-			wfr = new MojoWorkflowRunner();
-			wfr.setLog(getLog());
 			extendCurrentClassloader(wfr.getClass().getClassLoader());
 
-			// Initialize MojoWorkflowRunner
-			if (progressMonitorClass!=null) {
-				wfr.setProgressMonitorClass(progressMonitorClass);
-			} else if (WFENGINE_OAW.equals(workflowEngine)) {
-				wfr.setProgressMonitorClass(OAW_PROGRESSMONITOR);
-			} else if (WFENGINE_MWE.equals(workflowEngine)) {
-				wfr.setProgressMonitorClass(MWE_PROGRESSMONITOR);
-			} else {
-				throw new IllegalArgumentException ("Illegal value specified for parameter workflowEngine");
-			}
-			if (workflowRunnerClass!=null) {
-				wfr.setWorkflowRunnerClass(workflowRunnerClass);
-			} else if (WFENGINE_OAW.equals(workflowEngine)) {
-				wfr.setWorkflowRunnerClass(OAW_WORKFLOWRUNNER);
-			} else if (WFENGINE_MWE.equals(workflowEngine)) {
-				wfr.setWorkflowRunnerClass(MWE_WORKFLOWRUNNER);
-			} else {
-				throw new IllegalArgumentException ("Illegal value specified for parameter workflowEngine");
-			}
 
 			params.put("basedir", project.getBasedir().getPath());
 			params.put("outlet.src.dir",
@@ -331,7 +316,50 @@ public class WorkflowMojo extends AbstractMojo {
 			String prevUserDir = System.getProperty("user.dir");
 			System.setProperty("user.dir", project.getBasedir().getPath());
 
-			if (!wfr.run(workflowDescriptor, params, new HashMap<String,Object>())){
+			// Initialize MojoWorkflowRunner
+			if (progressMonitorClass!=null) {
+				wfr.setProgressMonitorClass(progressMonitorClass);
+			} else if (WFENGINE_OAW.equals(workflowEngine)) {
+				wfr.setProgressMonitorClass(OAW_PROGRESSMONITOR);
+			} else if (WFENGINE_MWE.equals(workflowEngine)) {
+				wfr.setProgressMonitorClass(MWE_PROGRESSMONITOR);
+			} else if (WFENGINE_MWE2.equals(workflowEngine)) {
+				// do nothing 
+			} 
+
+			if (workflowRunnerClass!=null) {
+				wfr.setWorkflowRunnerClass(workflowRunnerClass);
+			} else if (WFENGINE_OAW.equals(workflowEngine)) {
+				wfr.setWorkflowRunnerClass(OAW_WORKFLOWRUNNER);
+			} else if (WFENGINE_MWE.equals(workflowEngine)) {
+				wfr.setWorkflowRunnerClass(MWE_WORKFLOWRUNNER);
+			} else if (WFENGINE_MWE2.equals(workflowEngine)) {
+				wfr.setWorkflowRunnerClass(MWE2_WORKFLOWRUNNER);
+			} 
+
+			// Set properties depending on workflow engine
+			if (WFENGINE_OAW.equals(workflowEngine) ||WFENGINE_MWE.equals(workflowEngine)) {
+				// Prove for default workflowDescriptor. If workflowEngine is set to "mwe"
+				// replace default value by "workflow.mwe"
+				if ("workflow.oaw".equals(workflowDescriptor) && "mwe".equals(workflowEngine)) {
+					workflowDescriptor = "workflow.mwe";
+				}
+				
+				if (getWorkflowDescriptorRoot() == null){
+					throw new MojoExecutionException("Could not find the Workflow-Descriptor \""
+							+workflowDescriptor+"\".");
+				}
+
+				wfr.setWorkflowDescriptor(workflowDescriptor);
+				wfr.setParams(params);
+			} else if (WFENGINE_MWE2.equals(workflowEngine)) {
+				if ("workflow.oaw".equals(workflowDescriptor)) {
+					workflowDescriptor = "workflow.mwe2";
+				}
+				wfr.setWorkflowDescriptor(workflowDescriptor);
+			}
+
+			if (!wfr.run()){
 				System.setProperty("user.dir", prevUserDir);
 				throw new MojoExecutionException("Generation failed");
 			}
@@ -467,39 +495,48 @@ public class WorkflowMojo extends AbstractMojo {
 	 * @param currentClassLoader The current classloader to extend
 	 */
 	private void extendCurrentClassloader(ClassLoader currentClassLoader){
-		List<URL> classLoaderUrls = new ArrayList<URL>();
-		List<?> resources = null;
-		ClassLoader cl;
+		final List<?> resources = project.getBuild().getResources();
+		// http://blogs.webtide.com/janb/entry/extending_the_maven_plugin_classpath
+		//create a new classloading space
+		// MWE requires Tycho 0.9.0, due to this bug: https://issues.sonatype.org/browse/TYCHO-291
+        ClassWorld world = new ClassWorld();
 
-		resources = project.getBuild().getResources();
+        ClassRealm workflowRealm = null;
+		try {
+	        //use the existing ContextClassLoader in a realm of the classloading space
+	        ClassRealm containerRealm = world.newRealm("plugin.fornax.oaw.container", Thread.currentThread().getContextClassLoader());
+	        //create another realm for just the jars we have downloaded on-the-fly and make
+	        //sure it is in a child-parent relationship with the current ContextClassLoader
+			workflowRealm = containerRealm.createChildRealm("plugin.fornax.oaw.workflow");
+	        //add all the jars we just downloaded to the new child realm
+		} catch (DuplicateRealmException e) {
+			throw new RuntimeException (e);
+		}
+         
 		if (resources != null){
 			for (int i=0;i<resources.size();i++){
 				Resource resource = (Resource) resources.get(i);
 				File directory = resolvePath(new File(resource.getDirectory()));
-				classLoaderUrls.add(toURL(directory, true));
+				workflowRealm.addConstituent(toURL(directory, true));
+				if (getLog().isDebugEnabled()) {
+					getLog().debug("Added to classpath: "+toURL(directory, true));
+				}
 			}
 		}
-
 		for (Artifact artifact : dependencies) {
-			URL url = toURL(artifact.getFile(), false);
-			classLoaderUrls.add(url);
-			if (getLog().isDebugEnabled()) {
-				getLog().debug("Adding to classpath: "+url);
+			try {
+				workflowRealm.addConstituent(artifact.getFile().toURL());
+				if (getLog().isDebugEnabled()) {
+					getLog().debug("Added to classpath: "+artifact.getFile().toURL());
+				}
+			} catch (MalformedURLException e) {
+				getLog().error("Failed to add to classpath: "+artifact.getFile().getAbsolutePath());
 			}
 		}
-
-		if (classLoaderUrls.size() > 0){
-
-			File srcDir = resolvePath(new File(project.getBuild().getOutputDirectory()));
-			classLoaderUrls.add(toURL(srcDir, false));
-
-			URL[] urls = classLoaderUrls.toArray(
-					new URL[classLoaderUrls.size()]);
-
-			cl = new URLClassLoader(urls, currentClassLoader);
-			Thread.currentThread().setContextClassLoader(cl);
-		}
-	}
+        
+       //make the child realm the ContextClassLoader
+       Thread.currentThread().setContextClassLoader(workflowRealm.getClassLoader());
+    }
 
 	/**
 	 * Converts the given path to an url

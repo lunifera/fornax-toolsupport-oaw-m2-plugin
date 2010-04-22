@@ -30,31 +30,44 @@ import org.apache.maven.plugin.logging.Log;
  * @see org.eclipse.emf.mwe.core.WorkflowRunner
  */
 public class MojoWorkflowRunner {
+	private Log log;
 	private Object workflowRunner;
 	private Object progressMonitor;
 	private Method runMethod;
-	private Log log;
+	// Only oAW / MWE
+	private String workflowDescriptor;
+	private Map<String, String> params;
 	
-	protected void setLog(Log log) {
-		this.log = log;
-	}
-
-	public boolean run(String workflowDescriptor, 
-			Map<String, String> params, HashMap<String, Object> externalSlotContents) {
-
+	public boolean run() {
 		if (workflowRunner == null) throw new IllegalStateException("workflowRunnerClass not set");
-		if (progressMonitor == null) throw new IllegalStateException("progressMonitorClass not set");
-
 		try {
-			return (Boolean) runMethod.invoke(workflowRunner, workflowDescriptor, progressMonitor, params, externalSlotContents);
+			if (WorkflowMojo.MWE2_WORKFLOWRUNNER.equals(workflowRunner.getClass().getName())) {
+				try {
+					// Class mweStandaloneSetup = Class.forName("org.eclipse.emf.ecore.plugin.EcorePlugin");
+					// mweStandaloneSetup.getClass().getMethod("setPlatformUri", String.class).invoke(mweStandaloneSetup, "..");
+					// System.setProperty("guice.custom.loader", "eager");
+					runMethod.invoke(workflowRunner, new Object[]{new String[]{workflowDescriptor}});
+				} finally {
+					System.clearProperty("guice.custom.loader");
+				}
+				return true;
+			} else {
+				if (progressMonitor == null) throw new IllegalStateException("progressMonitorClass not set");
+				return (Boolean) runMethod.invoke(workflowRunner, workflowDescriptor, progressMonitor, params, new HashMap<String,Object>());
+			}
 		} catch (InvocationTargetException e) {
 			log.error(e.getTargetException().getClass().getSimpleName()+" occurred while running workflow: "+e.getTargetException().getMessage());
+			e.printStackTrace();
 			return false;
 		} catch (Exception e) {
 			log.error(e.getClass().getSimpleName()+" occurred while running workflow: "+e.getMessage());
+			e.printStackTrace();
 			return false;
 		}
-		
+	}
+
+	protected void setLog(Log log) {
+		this.log = log;
 	}
 
 
@@ -83,23 +96,42 @@ public class MojoWorkflowRunner {
 		}
 	}
 
+	public void setWorkflowDescriptor(String workflowDescriptor) {
+		this.workflowDescriptor = workflowDescriptor;
+	}
+
+	public void setParams(Map<String, String> params) {
+		this.params = params;
+	}
+
 	/**
 	 * Find the run method using reflection. Problem is that the ProgressMonitor interface is different. 
 	 * @param workflowRunner
-	 * @return
+	 * @return The 'run' method from the Workflow executor class
 	 */
 	private Method getRunMethod (Class<?> workflowRunner) {
 		Method run = null;
 		for (Method m : workflowRunner.getMethods()) {
 			if ("run".equals(m.getName())) {
 				Class<?>[] paramTypes = m.getParameterTypes();
-				if (paramTypes.length==4
-					&& String.class.equals(paramTypes[0])
-					&& "ProgressMonitor".equals(paramTypes[1].getSimpleName())
-					&& Map.class.isAssignableFrom(paramTypes[2])
-					&& Map.class.isAssignableFrom(paramTypes[3])
-					) {
-					run = m;
+				if (WorkflowMojo.MWE2_WORKFLOWRUNNER.equals(workflowRunner.getName())) {
+					String[] stringArr = {}; 
+					// MWE2
+					if (paramTypes.length==1
+						&& stringArr.getClass().equals(paramTypes[0])
+						) {
+						run = m;
+					}
+				} else {
+					// oAW 4 and MWE
+					if (paramTypes.length==4
+						&& String.class.equals(paramTypes[0])
+						&& "ProgressMonitor".equals(paramTypes[1].getSimpleName())
+						&& Map.class.isAssignableFrom(paramTypes[2])
+						&& Map.class.isAssignableFrom(paramTypes[3])
+						) {
+						run = m;
+					}
 				}
 			}
 		}
@@ -108,6 +140,5 @@ public class MojoWorkflowRunner {
 		}
 		return run;
 	}
-
 
 }

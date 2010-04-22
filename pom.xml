@@ -98,6 +98,18 @@
             <artifactId>plexus-utils</artifactId>
             <version>1.5.12</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>2.0</version>
+            <classifier>patch-343</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>2.0</version>
+            <classifier>javax.inject</classifier>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -129,33 +141,34 @@
     <reporting>
         <plugins>
             <plugin>
-                 <groupId>org.apache.maven.plugins</groupId>
-                 <artifactId>maven-project-info-reports-plugin</artifactId>
-                 <version>RELEASE</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>RELEASE</version>
             </plugin>
             <plugin>
-                 <groupId>org.apache.maven.plugins</groupId>
-                 <artifactId>maven-jxr-plugin</artifactId>
-                 <version>RELEASE</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jxr-plugin</artifactId>
+                <version>RELEASE</version>
             </plugin>
             <plugin>
-                 <groupId>org.apache.maven.plugins</groupId>
-                 <artifactId>maven-javadoc-plugin</artifactId>
-                 <version>RELEASE</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>RELEASE</version>
             </plugin>
             <plugin>
-                 <groupId>org.apache.maven.plugins</groupId>
-                 <artifactId>maven-changes-plugin</artifactId>
-                 <version>RELEASE</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-changes-plugin</artifactId>
+                <version>RELEASE</version>
             </plugin>
         </plugins>
     </reporting>
     <profiles>
         <profile>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
+            <!-- Deactivate this profile when you don't want to access the internet -->
             <id>RepositoryManagement</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <pluginRepositories>
                 <!-- Maven Replacer Plugin -->
                 <pluginRepository>
