@@ -34,6 +34,9 @@ import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
+import org.apache.tools.ant.Project;
+import org.apache.tools.ant.taskdefs.Java;
+import org.apache.tools.ant.types.Path;
 import org.codehaus.classworlds.ClassRealm;
 import org.codehaus.classworlds.ClassWorld;
 import org.codehaus.classworlds.DuplicateRealmException;
@@ -248,6 +251,9 @@ public class WorkflowMojo extends AbstractMojo {
     private Map<String,String> properties;
     
     private boolean isDefaultOawResourceDirManaged = false;
+    
+    private ClassRealm workflowRealm;
+    private Java javaTask;
 
 	/* (non-Javadoc)
 	 * @see org.apache.maven.plugin.Mojo#execute()
@@ -281,8 +287,8 @@ public class WorkflowMojo extends AbstractMojo {
 		}
 
 		if (!isUpToDate()){
-			extendCurrentClassloader(wfr.getClass().getClassLoader());
-
+			extendCurrentClassloader(wfr);
+			initJavaTask(wfr);
 
 			params.put("basedir", project.getBasedir().getPath());
 			params.put("outlet.src.dir",
@@ -492,16 +498,15 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Extends the current classloader with all resource path and the given
 	 * additional ClassLoaderURLs.
-	 * @param currentClassLoader The current classloader to extend
+	 * @param wfr The current classloader to extend
 	 */
-	private void extendCurrentClassloader(ClassLoader currentClassLoader){
+	private void extendCurrentClassloader(MojoWorkflowRunner wfr){
 		final List<?> resources = project.getBuild().getResources();
 		// http://blogs.webtide.com/janb/entry/extending_the_maven_plugin_classpath
 		//create a new classloading space
 		// MWE requires Tycho 0.9.0, due to this bug: https://issues.sonatype.org/browse/TYCHO-291
         ClassWorld world = new ClassWorld();
 
-        ClassRealm workflowRealm = null;
 		try {
 	        //use the existing ContextClassLoader in a realm of the classloading space
 	        ClassRealm containerRealm = world.newRealm("plugin.fornax.oaw.container", Thread.currentThread().getContextClassLoader());
@@ -523,8 +528,15 @@ public class WorkflowMojo extends AbstractMojo {
 				}
 			}
 		}
+		
+		String path = "";
 		for (Artifact artifact : dependencies) {
 			try {
+				if ("".equals(path)) {
+					path += artifact.getFile().getAbsolutePath();
+				} else {
+					path += System.getProperty("path.separator")+artifact.getFile().getAbsolutePath();
+				}
 				workflowRealm.addConstituent(artifact.getFile().toURL());
 				if (getLog().isDebugEnabled()) {
 					getLog().debug("Added to classpath: "+artifact.getFile().toURL());
@@ -533,10 +545,30 @@ public class WorkflowMojo extends AbstractMojo {
 				getLog().error("Failed to add to classpath: "+artifact.getFile().getAbsolutePath());
 			}
 		}
-        
        //make the child realm the ContextClassLoader
        Thread.currentThread().setContextClassLoader(workflowRealm.getClassLoader());
     }
+	
+	private void initJavaTask (MojoWorkflowRunner wfr) {
+		Project antProject = new Project();
+		antProject.setBaseDir(project.getBasedir());
+		javaTask = new Java();
+		javaTask.setProject(antProject);
+
+		String classpath = "";
+		for (URL url : workflowRealm.getConstituents()) {
+			if ("".equals(classpath)) {
+				classpath += url.getFile();
+			} else {
+				classpath += System.getProperty("path.separator")+url.getFile();
+			}
+		}
+		javaTask.setClasspath(new Path(antProject,classpath));
+		//javaTask.setSpawn(true);
+		javaTask.setFork(true);
+		// javaTask.set
+		wfr.setJavaTask(javaTask);
+	}
 
 	/**
 	 * Converts the given path to an url

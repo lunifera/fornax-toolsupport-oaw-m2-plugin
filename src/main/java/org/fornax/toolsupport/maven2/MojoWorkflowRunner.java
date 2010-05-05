@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.maven.plugin.logging.Log;
+import org.apache.tools.ant.taskdefs.Java;
 
 /**
  * Local class to execute the Workflow Engine. 
@@ -37,19 +38,19 @@ public class MojoWorkflowRunner {
 	// Only oAW / MWE
 	private String workflowDescriptor;
 	private Map<String, String> params;
+	private Java javaTask;
 	
 	public boolean run() {
 		if (workflowRunner == null) throw new IllegalStateException("workflowRunnerClass not set");
 		try {
 			if (WorkflowMojo.MWE2_WORKFLOWRUNNER.equals(workflowRunner.getClass().getName())) {
-				try {
-					// Class mweStandaloneSetup = Class.forName("org.eclipse.emf.ecore.plugin.EcorePlugin");
-					// mweStandaloneSetup.getClass().getMethod("setPlatformUri", String.class).invoke(mweStandaloneSetup, "..");
-					// System.setProperty("guice.custom.loader", "eager");
-					runMethod.invoke(workflowRunner, new Object[]{new String[]{workflowDescriptor}});
-				} finally {
-					System.clearProperty("guice.custom.loader");
-				}
+				
+				//javaTask.setClassname(WorkflowMojo.MWE2_WORKFLOWRUNNER);
+				//javaTask.setArgs(workflowDescriptor);
+				//log.debug(javaTask.toString());
+				//javaTask.executeJava();
+				//log.debug(System.getProperties().toString());
+				runMethod.invoke(workflowRunner, new Object[]{new String[]{workflowDescriptor}});
 				return true;
 			} else {
 				if (progressMonitor == null) throw new IllegalStateException("progressMonitorClass not set");
@@ -57,11 +58,11 @@ public class MojoWorkflowRunner {
 			}
 		} catch (InvocationTargetException e) {
 			log.error(e.getTargetException().getClass().getSimpleName()+" occurred while running workflow: "+e.getTargetException().getMessage());
-			e.printStackTrace();
+			log.debug(e);
 			return false;
 		} catch (Exception e) {
 			log.error(e.getClass().getSimpleName()+" occurred while running workflow: "+e.getMessage());
-			e.printStackTrace();
+			log.debug(e);
 			return false;
 		}
 	}
@@ -104,6 +105,11 @@ public class MojoWorkflowRunner {
 		this.params = params;
 	}
 
+	public void setJavaTask(Java javaTask) {
+		this.javaTask = javaTask;
+	}
+
+	
 	/**
 	 * Find the run method using reflection. Problem is that the ProgressMonitor interface is different. 
 	 * @param workflowRunner
