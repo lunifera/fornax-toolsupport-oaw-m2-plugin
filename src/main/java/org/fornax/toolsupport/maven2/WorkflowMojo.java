@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.FileSet;
@@ -50,6 +52,7 @@ import org.codehaus.plexus.util.FileUtils;
  * <p>
  * You can configure resources that should be checked if they are up to date to avoid needless
  * generator runs and optimize build execution time.
+ * @phase generate-sources
  * @goal run-workflow
  * @requiresDependencyResolution test
  * @description Executes the Workflow-Engine from the
@@ -87,7 +90,7 @@ public class WorkflowMojo extends AbstractMojo {
      * The name of the workflow descriptor.
      * <p>
      * <i>Only supported for workflow engine 'oaw' and 'mwe'</i>
-     * @parameter default-value="workflow.mwe"
+     * @parameter default-value="workflow.mwe2"
      * @required
      */
     private String workflowDescriptor;
@@ -193,8 +196,8 @@ public class WorkflowMojo extends AbstractMojo {
     private List<String> checkResources;
     /**
      * A <code>java.util.List</code> with resources that will be checked on up to date.
-     * If all resources are uptodate the plugin stopps the execution, because there
-     * are nothing newer to regenerate.
+     * If all resources are up to date the plugin stops the execution, because there
+     * are no files to regenerate.
      * <br/>
      * The entries of this list can be relative path to the project root or absolute path.
      * @parameter
@@ -224,7 +227,7 @@ public class WorkflowMojo extends AbstractMojo {
      * <li><tt>mwe</tt>: Eclipse Model Workflow Engine (MWE)
      * <li><tt>mwe2</tt>: Eclipse Model Workflow Engine 2 (MWE2)
      * </ul>
-     * @parameter default-value="mwe"
+     * @parameter default-value="mwe2"
      * @required
      */
     private String workflowEngine;
@@ -524,25 +527,27 @@ public class WorkflowMojo extends AbstractMojo {
 				File directory = resolvePath(new File(resource.getDirectory()));
 				workflowRealm.addConstituent(toURL(directory, true));
 				if (getLog().isDebugEnabled()) {
-					getLog().debug("Added to classpath: "+toURL(directory, true));
+					getLog().debug("Added resource to classpath: "+toURL(directory, true));
 				}
 			}
 		}
 		
 		String path = "";
 		for (Artifact artifact : dependencies) {
+			if ("".equals(path)) {
+				path += artifact.getFile().getAbsolutePath();
+			} else {
+				path += System.getProperty("path.separator")+artifact.getFile().getAbsolutePath();
+			}
 			try {
-				if ("".equals(path)) {
-					path += artifact.getFile().getAbsolutePath();
-				} else {
-					path += System.getProperty("path.separator")+artifact.getFile().getAbsolutePath();
-				}
+				// only add archives, for non-archives an exception is thrown
+				new ZipFile(artifact.getFile());
 				workflowRealm.addConstituent(artifact.getFile().toURL());
 				if (getLog().isDebugEnabled()) {
-					getLog().debug("Added to classpath: "+artifact.getFile().toURL());
+					getLog().debug("Added dependency to classpath: "+artifact.getFile().toURL());
 				}
-			} catch (MalformedURLException e) {
-				getLog().error("Failed to add to classpath: "+artifact.getFile().getAbsolutePath());
+			} catch (ZipException e) {
+			} catch (IOException e) {
 			}
 		}
        //make the child realm the ContextClassLoader
@@ -566,6 +571,8 @@ public class WorkflowMojo extends AbstractMojo {
 		javaTask.setClasspath(new Path(antProject,classpath));
 		//javaTask.setSpawn(true);
 		javaTask.setFork(true);
+		javaTask.setFailonerror(true);
+		javaTask.setLogError(true);
 		// javaTask.set
 		wfr.setJavaTask(javaTask);
 	}

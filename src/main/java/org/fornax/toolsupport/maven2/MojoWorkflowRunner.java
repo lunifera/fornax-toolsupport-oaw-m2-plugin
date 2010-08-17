@@ -45,13 +45,11 @@ public class MojoWorkflowRunner {
 		try {
 			if (WorkflowMojo.MWE2_WORKFLOWRUNNER.equals(workflowRunner.getClass().getName())) {
 				
-				//javaTask.setClassname(WorkflowMojo.MWE2_WORKFLOWRUNNER);
-				//javaTask.setArgs(workflowDescriptor);
-				//log.debug(javaTask.toString());
-				//javaTask.executeJava();
-				//log.debug(System.getProperties().toString());
-				runMethod.invoke(workflowRunner, new Object[]{new String[]{workflowDescriptor}});
-				return true;
+				javaTask.setClassname(WorkflowMojo.MWE2_WORKFLOWRUNNER);
+				javaTask.setArgs(workflowDescriptor);
+				log.debug(javaTask.getCommandLine().toString());
+				int result = javaTask.executeJava();
+				return result==0;
 			} else {
 				if (progressMonitor == null) throw new IllegalStateException("progressMonitorClass not set");
 				return (Boolean) runMethod.invoke(workflowRunner, workflowDescriptor, progressMonitor, params, new HashMap<String,Object>());
