@@ -1,5 +1,5 @@
 /*
-*	Copyright 2006-2009 The Fornax Project Team
+*	Copyright 2006-2010 The Fornax Project Team
 *	Licensed under the Apache License, Version 2.0 (the "License");
 *	you may not use this file except in compliance with the License.
 * 	You may obtain a copy of the License at
@@ -16,7 +16,6 @@ package org.fornax.toolsupport.maven2;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -54,6 +53,7 @@ import org.codehaus.plexus.util.FileUtils;
  * generator runs and optimize build execution time.
  * @phase generate-sources
  * @goal run-workflow
+ * @execute goal="run-workflow"
  * @requiresDependencyResolution test
  * @description Executes the Workflow-Engine from the
  * openArchitectureWare Generator-Framework
@@ -368,7 +368,10 @@ public class WorkflowMojo extends AbstractMojo {
 				wfr.setWorkflowDescriptor(workflowDescriptor);
 			}
 
-			if (!wfr.run()){
+			boolean success = wfr.run();
+			if (success) {
+				getLog().info("Workflow '"+workflowDescriptor+"' finished.");
+			} else {
 				System.setProperty("user.dir", prevUserDir);
 				throw new MojoExecutionException("Generation failed");
 			}

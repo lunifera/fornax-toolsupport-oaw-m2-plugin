@@ -16,6 +16,7 @@ package org.fornax.toolsupport.maven2;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,6 +49,8 @@ public class MojoWorkflowRunner {
 				javaTask.setClassname(WorkflowMojo.MWE2_WORKFLOWRUNNER);
 				javaTask.setArgs(workflowDescriptor);
 				log.debug(javaTask.getCommandLine().toString());
+				
+				//javaTask.handleInput(buffer, offset, length)
 				int result = javaTask.executeJava();
 				return result==0;
 			} else {
