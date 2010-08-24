@@ -16,7 +16,6 @@ package org.fornax.toolsupport.maven2;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,9 +49,8 @@ public class MojoWorkflowRunner {
 				javaTask.setArgs(workflowDescriptor);
 				log.debug(javaTask.getCommandLine().toString());
 				
-				//javaTask.handleInput(buffer, offset, length)
-				int result = javaTask.executeJava();
-				return result==0;
+				javaTask.getProject().executeTarget("default");
+				return true;
 			} else {
 				if (progressMonitor == null) throw new IllegalStateException("progressMonitorClass not set");
 				return (Boolean) runMethod.invoke(workflowRunner, workflowDescriptor, progressMonitor, params, new HashMap<String,Object>());
