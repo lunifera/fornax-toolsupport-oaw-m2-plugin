@@ -16,6 +16,8 @@ package org.fornax.toolsupport.maven2;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -39,6 +41,7 @@ import org.apache.maven.project.MavenProject;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Target;
 import org.apache.tools.ant.taskdefs.Java;
+import org.apache.tools.ant.taskdefs.Redirector;
 import org.apache.tools.ant.types.Path;
 import org.codehaus.classworlds.ClassRealm;
 import org.codehaus.classworlds.ClassWorld;
@@ -46,24 +49,22 @@ import org.codehaus.classworlds.DuplicateRealmException;
 import org.codehaus.plexus.util.FileUtils;
 
 /**
- * This is the plugin to the openArchitectureWare/Eclipse MWE
- * Workflow-component. This plugin can used to generate artifacts out of models
- * (e.g. UML, EMF).
+ * This is the plugin to the openArchitectureWare/Eclipse MWE Workflow-component. This plugin can used to generate artifacts out
+ * of models (e.g. UML, EMF).
  * <p>
- * You can configure resources that should be checked if they are up to date to
- * avoid needless generator runs and optimize build execution time.
+ * You can configure resources that should be checked if they are up to date to avoid needless generator runs and optimize build
+ * execution time.
  * 
  * @phase generate-sources
  * @goal run-workflow
  * @execute goal="run-workflow"
  * @requiresDependencyResolution test
- * @description Executes the Workflow-Engine from the openArchitectureWare
- *              Generator-Framework
+ * @description Executes the Workflow-Engine from the openArchitectureWare Generator-Framework
  * @author Thorsten Kamann <thorsten.kamann@googlemail.com>
  * @author Karsten Thoms <karsten.thoms@itemis.de>
  */
 public class WorkflowMojo extends AbstractMojo {
-	private static final String MOJO_VERSION = "3.1.0-SNAPSHOT";
+	private static final String MOJO_VERSION = "3.1.0";
 	public static final String WFENGINE_OAW = "oaw";
 	public static final String WFENGINE_MWE = "mwe";
 	public static final String WFENGINE_MWE2 = "mwe2";
@@ -100,8 +101,8 @@ public class WorkflowMojo extends AbstractMojo {
 	private String workflowDescriptor;
 
 	/**
-	 * Directory for source-code artifacts. If an artifact with the same name
-	 * already exists, the generation of the artifact will be skipped.
+	 * Directory for source-code artifacts. If an artifact with the same name already exists, the generation of the artifact will
+	 * be skipped.
 	 * 
 	 * @parameter expression="${project.build.sourceDirectory}"
 	 * @required
@@ -109,8 +110,8 @@ public class WorkflowMojo extends AbstractMojo {
 	private String outletSrcOnceDir;
 
 	/**
-	 * Directory for non-source-code artifacts. If an artifact with the same
-	 * name already exists, the generation of the artifact will be skipped.
+	 * Directory for non-source-code artifacts. If an artifact with the same name already exists, the generation of the artifact
+	 * will be skipped.
 	 * 
 	 * @parameter default-value="src/main/resources"
 	 * @required
@@ -118,8 +119,7 @@ public class WorkflowMojo extends AbstractMojo {
 	private String outletResOnceDir;
 
 	/**
-	 * Directory for source-code artifacts. Existings artifacts will be
-	 * overwritten.
+	 * Directory for source-code artifacts. Existings artifacts will be overwritten.
 	 * 
 	 * @parameter default-value="src/generated/java"
 	 * @required
@@ -127,8 +127,7 @@ public class WorkflowMojo extends AbstractMojo {
 	private String outletSrcDir;
 
 	/**
-	 * Directory for non-source-code artifacts. Existings artifacts will be
-	 * overwritten.
+	 * Directory for non-source-code artifacts. Existings artifacts will be overwritten.
 	 * 
 	 * @parameter default-value="src/generated/resources"
 	 * @required
@@ -136,8 +135,7 @@ public class WorkflowMojo extends AbstractMojo {
 	private String outletResDir;
 
 	/**
-	 * Directory for source-code test-artifacts. Existings artifacts will be
-	 * overwritten.
+	 * Directory for source-code test-artifacts. Existings artifacts will be overwritten.
 	 * 
 	 * @parameter default-value="src/test/generated/java"
 	 * @required
@@ -145,8 +143,7 @@ public class WorkflowMojo extends AbstractMojo {
 	private String outletSrcTestDir;
 
 	/**
-	 * Directory for non-source-code test-artifacts. Existings artifacts will be
-	 * overwritten.
+	 * Directory for non-source-code test-artifacts. Existings artifacts will be overwritten.
 	 * 
 	 * @parameter default-value="src/test/generated/resources"
 	 * @required
@@ -154,8 +151,8 @@ public class WorkflowMojo extends AbstractMojo {
 	private String outletResTestDir;
 
 	/**
-	 * Directory for source-code artifacts. If an artifact with the same name
-	 * already exists, the generation of the artifact will be skipped.
+	 * Directory for source-code artifacts. If an artifact with the same name already exists, the generation of the artifact will
+	 * be skipped.
 	 * 
 	 * @parameter expression="${project.build.testSourceDirectory}"
 	 * @required
@@ -163,8 +160,7 @@ public class WorkflowMojo extends AbstractMojo {
 	private String outletSrcTestOnceDir;
 
 	/**
-	 * Directory for source-code test-artifacts. Existings artifacts will not be
-	 * overwritten.
+	 * Directory for source-code test-artifacts. Existings artifacts will not be overwritten.
 	 * 
 	 * @parameter default-value="src/testgenerated/java"
 	 * @required
@@ -204,21 +200,17 @@ public class WorkflowMojo extends AbstractMojo {
 	private String outletResTestProtectedDir;
 
 	/**
-	 * A <code>java.util.List</code> with resources that will be checked on up
-	 * to date. If all resources are uptodate the plugin stopps the execution,
-	 * because there are nothing newer to regenerate. <br/>
-	 * The entries of this list can be relative path to the project root or
-	 * absolute path.
+	 * A <code>java.util.List</code> with resources that will be checked on up to date. If all resources are uptodate the plugin
+	 * stopps the execution, because there are nothing newer to regenerate. <br/>
+	 * The entries of this list can be relative path to the project root or absolute path.
 	 * 
 	 * @parameter
 	 */
 	private List<String> checkResources;
 	/**
-	 * A <code>java.util.List</code> with resources that will be checked on up
-	 * to date. If all resources are up to date the plugin stops the execution,
-	 * because there are no files to regenerate. <br/>
-	 * The entries of this list can be relative path to the project root or
-	 * absolute path.
+	 * A <code>java.util.List</code> with resources that will be checked on up to date. If all resources are up to date the plugin
+	 * stops the execution, because there are no files to regenerate. <br/>
+	 * The entries of this list can be relative path to the project root or absolute path.
 	 * 
 	 * @parameter
 	 */
@@ -231,9 +223,8 @@ public class WorkflowMojo extends AbstractMojo {
 	private String timestampFileName;
 
 	/**
-	 * Defines the directory containing the runtime configurations, resources
-	 * (eg. the models, log-configurations, properties,...). This directory will
-	 * be added to the classpath temporarily, but removed after the generation.
+	 * Defines the directory containing the runtime configurations, resources (eg. the models, log-configurations,
+	 * properties,...). This directory will be added to the classpath temporarily, but removed after the generation.
 	 * 
 	 * @parameter default-value="oaw-generator"
 	 * @required
@@ -291,24 +282,19 @@ public class WorkflowMojo extends AbstractMojo {
 		getLog().info("Fornax oAW/MWE/MWE2 Maven2 Plugin V" + MOJO_VERSION);
 
 		// Check workflowEngine parameter
-		if (!WFENGINE_OAW.equals(workflowEngine)
-				&& !WFENGINE_MWE.equals(workflowEngine)
-				&& !WFENGINE_MWE2.equals(workflowEngine)) {
-			throw new IllegalArgumentException(
-					"Illegal value specified for parameter workflowEngine");
+		if (!WFENGINE_OAW.equals(workflowEngine) && !WFENGINE_MWE.equals(workflowEngine) && !WFENGINE_MWE2.equals(workflowEngine)) {
+			throw new IllegalArgumentException("Illegal value specified for parameter workflowEngine");
 		}
 
 		wfr = new MojoWorkflowRunner();
 		wfr.setLog(getLog());
 
-		if ("true"
-				.equals(System.getProperty("fornax.generator.omit.execution"))) {
+		if ("true".equals(System.getProperty("fornax.generator.omit.execution"))) {
 			getLog().info("Omitting workflow execution.");
 			return;
 		}
 
-		if ("true".equalsIgnoreCase(System
-				.getProperty("fornax.generator.force.execution"))) {
+		if ("true".equalsIgnoreCase(System.getProperty("fornax.generator.force.execution"))) {
 			getLog().info("Forced workflow execution");
 			File timeStampFile = getTimeStampFile();
 			if (timeStampFile != null) {
@@ -323,26 +309,16 @@ public class WorkflowMojo extends AbstractMojo {
 			params.put("basedir", project.getBasedir().getPath());
 			params.put("outlet.src.dir", getNormalizedFilePath(outletSrcDir));
 			params.put("outlet.res.dir", getNormalizedFilePath(outletResDir));
-			params.put("outlet.src.once.dir",
-					getNormalizedFilePath(outletSrcOnceDir));
-			params.put("outlet.res.once.dir",
-					getNormalizedFilePath(outletResOnceDir));
-			params.put("outlet.src.test.dir",
-					getNormalizedFilePath(outletSrcTestDir));
-			params.put("outlet.res.test.dir",
-					getNormalizedFilePath(outletResTestDir));
-			params.put("outlet.src.test.once.dir",
-					getNormalizedFilePath(outletSrcTestOnceDir));
-			params.put("outlet.res.test.once.dir",
-					getNormalizedFilePath(outletResTestOnceDir));
-			params.put("outlet.src.protected.dir",
-					getNormalizedFilePath(outletSrcProtectedDir));
-			params.put("outlet.res.protected.dir",
-					getNormalizedFilePath(outletResTestProtectedDir));
-			params.put("outlet.src.test.protected.dir",
-					getNormalizedFilePath(outletSrcProtectedDir));
-			params.put("outlet.res.test.protected.dir",
-					getNormalizedFilePath(outletResTestProtectedDir));
+			params.put("outlet.src.once.dir", getNormalizedFilePath(outletSrcOnceDir));
+			params.put("outlet.res.once.dir", getNormalizedFilePath(outletResOnceDir));
+			params.put("outlet.src.test.dir", getNormalizedFilePath(outletSrcTestDir));
+			params.put("outlet.res.test.dir", getNormalizedFilePath(outletResTestDir));
+			params.put("outlet.src.test.once.dir", getNormalizedFilePath(outletSrcTestOnceDir));
+			params.put("outlet.res.test.once.dir", getNormalizedFilePath(outletResTestOnceDir));
+			params.put("outlet.src.protected.dir", getNormalizedFilePath(outletSrcProtectedDir));
+			params.put("outlet.res.protected.dir", getNormalizedFilePath(outletResTestProtectedDir));
+			params.put("outlet.src.test.protected.dir", getNormalizedFilePath(outletSrcProtectedDir));
+			params.put("outlet.res.test.protected.dir", getNormalizedFilePath(outletResTestProtectedDir));
 			if (properties != null && properties.size() > 0) {
 				params.putAll(properties);
 			}
@@ -372,20 +348,16 @@ public class WorkflowMojo extends AbstractMojo {
 			}
 
 			// Set properties depending on workflow engine
-			if (WFENGINE_OAW.equals(workflowEngine)
-					|| WFENGINE_MWE.equals(workflowEngine)) {
+			if (WFENGINE_OAW.equals(workflowEngine) || WFENGINE_MWE.equals(workflowEngine)) {
 				// Prove for default workflowDescriptor. If workflowEngine is
 				// set to "mwe"
 				// replace default value by "workflow.mwe"
-				if ("workflow.oaw".equals(workflowDescriptor)
-						&& "mwe".equals(workflowEngine)) {
+				if ("workflow.oaw".equals(workflowDescriptor) && "mwe".equals(workflowEngine)) {
 					workflowDescriptor = "workflow.mwe";
 				}
 
 				if (getWorkflowDescriptorRoot() == null) {
-					throw new MojoExecutionException(
-							"Could not find the Workflow-Descriptor \""
-									+ workflowDescriptor + "\".");
+					throw new MojoExecutionException("Could not find the Workflow-Descriptor \"" + workflowDescriptor + "\".");
 				}
 
 				wfr.setWorkflowDescriptor(workflowDescriptor);
@@ -399,8 +371,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 			boolean success = wfr.run();
 			if (success) {
-				getLog()
-						.info("Workflow '" + workflowDescriptor + "' finished.");
+				getLog().info("Workflow '" + workflowDescriptor + "' finished.");
 			} else {
 				System.setProperty("user.dir", prevUserDir);
 				throw new MojoExecutionException("Generation failed");
@@ -410,8 +381,7 @@ public class WorkflowMojo extends AbstractMojo {
 			try {
 				createTimeStampFile();
 			} catch (IOException ie) {
-				throw new MojoExecutionException(
-						"Could not create the timestamp file.", ie);
+				throw new MojoExecutionException("Could not create the timestamp file.", ie);
 			}
 		}
 
@@ -425,17 +395,14 @@ public class WorkflowMojo extends AbstractMojo {
 				extendResources(outletResProtectedDir, false);
 				extendResources(outletResTestProtectedDir, true);
 			} catch (Exception ex) {
-				throw new MojoExecutionException(
-						"Could not extend the project's compile path.", ex);
+				throw new MojoExecutionException("Could not extend the project's compile path.", ex);
 			}
 		}
 
 		if (!isDefaultOawResourceDirManaged) {
 			for (int i = 0; i < project.getBuild().getResources().size(); i++) {
-				Resource resource = (Resource) project.getBuild()
-						.getResources().get(i);
-				if (resource.getDirectory().equalsIgnoreCase(
-						defaultOawResourceDir)) {
+				Resource resource = (Resource) project.getBuild().getResources().get(i);
+				if (resource.getDirectory().equalsIgnoreCase(defaultOawResourceDir)) {
 					project.getBuild().removeResource(resource);
 				}
 			}
@@ -446,8 +413,7 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Indicates whether all resources are uptodate
 	 * 
-	 * @return <code>true</code> if all resources are uptodate otherwise
-	 *         <code>false</code>
+	 * @return <code>true</code> if all resources are uptodate otherwise <code>false</code>
 	 */
 	private boolean isUpToDate() {
 		final SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd-hh:mm:ss");
@@ -493,11 +459,7 @@ public class WorkflowMojo extends AbstractMojo {
 		}
 
 		if (getLog().isDebugEnabled()) {
-			getLog()
-					.debug(
-							"Generator timestamp: "
-									+ df.format(new Date(timeStampFile
-											.lastModified())));
+			getLog().debug("Generator timestamp: " + df.format(new Date(timeStampFile.lastModified())));
 		}
 		int outdatedFiles = 0;
 		File lastOutdatedResource = null;
@@ -509,13 +471,8 @@ public class WorkflowMojo extends AbstractMojo {
 			}
 
 			if (getLog().isDebugEnabled()) {
-				String status = (checkResource.lastModified() <= timeStampFile
-						.lastModified()) ? "UPTODATE" : "OUTDATED ";
-				getLog().debug(
-						status
-								+ " "
-								+ df.format(new Date(checkResource
-										.lastModified())));
+				String status = (checkResource.lastModified() <= timeStampFile.lastModified()) ? "UPTODATE" : "OUTDATED ";
+				getLog().debug(status + " " + df.format(new Date(checkResource.lastModified())));
 			}
 
 			if (checkResource.lastModified() > timeStampFile.lastModified()) {
@@ -527,25 +484,18 @@ public class WorkflowMojo extends AbstractMojo {
 			if (outdatedFiles == 1) {
 				String fileName = lastOutdatedResource.getAbsolutePath();
 				if (fileName.startsWith(project.getBasedir().getAbsolutePath())) {
-					fileName = fileName.substring(project.getBasedir()
-							.getAbsolutePath().length() + 1);
+					fileName = fileName.substring(project.getBasedir().getAbsolutePath().length() + 1);
 				}
-				final String message = MessageFormat
-						.format(
-								"{0} has been modified since last generator run at {1}.",
-								fileName, df.format(new Date(timeStampFile
-										.lastModified())));
+				final String message = MessageFormat.format("{0} has been modified since last generator run at {1}.", fileName,
+						df.format(new Date(timeStampFile.lastModified())));
 				getLog().info(message);
 			} else if (outdatedFiles > 1) {
-				final String message = MessageFormat
-						.format(
-								"{0} checked resources have been modified since last generator run at {1}.",
-								outdatedFiles, df.format(new Date(timeStampFile
-										.lastModified())));
+				final String message = MessageFormat.format(
+						"{0} checked resources have been modified since last generator run at {1}.", outdatedFiles, df
+								.format(new Date(timeStampFile.lastModified())));
 				getLog().info(message);
 			} else {
-				this.getLog().info(
-						"Everything is up to date. No generation is needed.");
+				this.getLog().info("Everything is up to date. No generation is needed.");
 			}
 		}
 
@@ -553,8 +503,7 @@ public class WorkflowMojo extends AbstractMojo {
 	}
 
 	/**
-	 * Extends the current classloader with all resource path and the given
-	 * additional ClassLoaderURLs.
+	 * Extends the current classloader with all resource path and the given additional ClassLoaderURLs.
 	 * 
 	 * @param wfr
 	 *            The current classloader to extend
@@ -569,15 +518,13 @@ public class WorkflowMojo extends AbstractMojo {
 		try {
 			// use the existing ContextClassLoader in a realm of the
 			// classloading space
-			ClassRealm containerRealm = world.newRealm(
-					"plugin.fornax.oaw.container", Thread.currentThread()
-							.getContextClassLoader());
+			ClassRealm containerRealm = world.newRealm("plugin.fornax.oaw.container", Thread.currentThread()
+					.getContextClassLoader());
 			// create another realm for just the jars we have downloaded
 			// on-the-fly and make
 			// sure it is in a child-parent relationship with the current
 			// ContextClassLoader
-			workflowRealm = containerRealm
-					.createChildRealm("plugin.fornax.oaw.workflow");
+			workflowRealm = containerRealm.createChildRealm("plugin.fornax.oaw.workflow");
 			// add all the jars we just downloaded to the new child realm
 		} catch (DuplicateRealmException e) {
 			throw new RuntimeException(e);
@@ -589,9 +536,7 @@ public class WorkflowMojo extends AbstractMojo {
 				File directory = resolvePath(new File(resource.getDirectory()));
 				workflowRealm.addConstituent(toURL(directory, true));
 				if (getLog().isDebugEnabled()) {
-					getLog().debug(
-							"Added resource to classpath: "
-									+ toURL(directory, true));
+					getLog().debug("Added resource to classpath: " + toURL(directory, true));
 				}
 			}
 		}
@@ -601,25 +546,21 @@ public class WorkflowMojo extends AbstractMojo {
 			if ("".equals(path)) {
 				path += artifact.getFile().getAbsolutePath();
 			} else {
-				path += System.getProperty("path.separator")
-						+ artifact.getFile().getAbsolutePath();
+				path += System.getProperty("path.separator") + artifact.getFile().getAbsolutePath();
 			}
 			try {
 				// only add archives, for non-archives an exception is thrown
 				new ZipFile(artifact.getFile());
 				workflowRealm.addConstituent(artifact.getFile().toURL());
 				if (getLog().isDebugEnabled()) {
-					getLog().debug(
-							"Added dependency to classpath: "
-									+ artifact.getFile().toURL());
+					getLog().debug("Added dependency to classpath: " + artifact.getFile().toURL());
 				}
 			} catch (ZipException e) {
 			} catch (IOException e) {
 			}
 		}
 		// make the child realm the ContextClassLoader
-		Thread.currentThread().setContextClassLoader(
-				workflowRealm.getClassLoader());
+		Thread.currentThread().setContextClassLoader(workflowRealm.getClassLoader());
 	}
 
 	private void initJavaTask(MojoWorkflowRunner wfr) {
@@ -633,22 +574,37 @@ public class WorkflowMojo extends AbstractMojo {
 			if ("".equals(classpath)) {
 				classpath += url.getFile();
 			} else {
-				classpath += System.getProperty("path.separator")
-						+ url.getFile();
+				classpath += System.getProperty("path.separator") + url.getFile();
 			}
 		}
 		javaTask.setClasspath(new Path(antProject, classpath));
-		// javaTask.setSpawn(true);
 		javaTask.setFork(true);
 		javaTask.setFailonerror(true);
-		javaTask.setLogError(true);
-		javaTask.setSpawn(false);
 		javaTask.setInputString("y\n");
-		wfr.setJavaTask(javaTask);
 
 		Target target = new Target();
 		antProject.addTarget("default", target);
 		target.addTask(javaTask);
+		final MavenLogOutputStream os = new MavenLogOutputStream(getLog());
+		Redirector redirector = new Redirector(javaTask) {
+			@Override
+			public OutputStream getOutputStream() {
+				return os;
+			}
+			@Override
+			public OutputStream getErrorStream() {
+				return os;
+			}
+		};
+		try {
+			Field redirectorField = Java.class.getDeclaredField("redirector");
+			redirectorField.setAccessible(true);
+			redirectorField.set(javaTask, redirector);
+			redirectorField.setAccessible(false);
+		} catch (Exception e) { // SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException
+			throw new RuntimeException(e);
+		}
+		wfr.setJavaTask(javaTask);
 	}
 
 	/**
@@ -661,8 +617,7 @@ public class WorkflowMojo extends AbstractMojo {
 	private URL toURL(File path, boolean trailingSlash) {
 		URL url = null;
 		try {
-			url = new URL(path.toURI().toString()
-					+ ((trailingSlash) ? "/" : ""));
+			url = new URL(path.toURI().toString() + ((trailingSlash) ? "/" : ""));
 		} catch (Exception e) {
 			getLog().error("Could not resolve \"" + path.getPath() + "\".", e);
 		}
@@ -670,8 +625,7 @@ public class WorkflowMojo extends AbstractMojo {
 	}
 
 	/**
-	 * Resolve the given path. That means that the given path is converted to an
-	 * absolute path
+	 * Resolve the given path. That means that the given path is converted to an absolute path
 	 * 
 	 * @param path
 	 *            The path to resolve
@@ -691,54 +645,38 @@ public class WorkflowMojo extends AbstractMojo {
 	}
 
 	/**
-	 * Extends the Maven CompileSourceRoot. This must be done because the
-	 * generated resources must be in the compile srcpath.
+	 * Extends the Maven CompileSourceRoot. This must be done because the generated resources must be in the compile srcpath.
 	 */
 	private void extendCompileSourceRoot() throws Exception {
-		if (!project.getBuild().getSourceDirectory().equalsIgnoreCase(
-				outletSrcDir)) {
-			System.out.println("Adding " + getNormalizedFilePath(outletSrcDir));
+		if (!project.getBuild().getSourceDirectory().equalsIgnoreCase(outletSrcDir)) {
+			getLog().debug("Adding compile source directory " + getNormalizedFilePath(outletSrcDir));
 			project.addCompileSourceRoot(getNormalizedFilePath(outletSrcDir));
 		}
 
-		if (!project.getBuild().getSourceDirectory().equalsIgnoreCase(
-				outletSrcProtectedDir)) {
-			System.out.println("Adding "
-					+ getNormalizedFilePath(outletSrcProtectedDir));
-			project
-					.addCompileSourceRoot(getNormalizedFilePath(outletSrcProtectedDir));
+		if (!project.getBuild().getSourceDirectory().equalsIgnoreCase(outletSrcProtectedDir)) {
+			getLog().debug("Adding compile source directory " + getNormalizedFilePath(outletSrcProtectedDir));
+			project.addCompileSourceRoot(getNormalizedFilePath(outletSrcProtectedDir));
 		}
 
-		if (!project.getBuild().getSourceDirectory().equalsIgnoreCase(
-				outletSrcOnceDir)
+		if (!project.getBuild().getSourceDirectory().equalsIgnoreCase(outletSrcOnceDir)
 				&& !outletSrcDir.equalsIgnoreCase(outletSrcOnceDir)) {
-			project
-					.addCompileSourceRoot(getNormalizedFilePath(outletSrcOnceDir));
+			project.addCompileSourceRoot(getNormalizedFilePath(outletSrcOnceDir));
 		}
 
-		if (!project.getBuild().getTestSourceDirectory().equalsIgnoreCase(
-				outletSrcTestDir)) {
-			System.out.println("Adding "
-					+ getNormalizedFilePath(outletSrcTestDir));
-			project
-					.addTestCompileSourceRoot(getNormalizedFilePath(outletSrcTestDir));
+		if (!project.getBuild().getTestSourceDirectory().equalsIgnoreCase(outletSrcTestDir)) {
+			getLog().debug("Adding compile source directory " + getNormalizedFilePath(outletSrcTestDir));
+			project.addTestCompileSourceRoot(getNormalizedFilePath(outletSrcTestDir));
 		}
 
-		if (!project.getBuild().getTestSourceDirectory().equalsIgnoreCase(
-				outletSrcOnceDir)
+		if (!project.getBuild().getTestSourceDirectory().equalsIgnoreCase(outletSrcOnceDir)
 				&& !outletSrcTestDir.equalsIgnoreCase(outletSrcTestOnceDir)) {
-			project
-					.addTestCompileSourceRoot(getNormalizedFilePath(outletSrcTestOnceDir));
+			project.addTestCompileSourceRoot(getNormalizedFilePath(outletSrcTestOnceDir));
 		}
 
-		if (!project.getBuild().getTestSourceDirectory().equalsIgnoreCase(
-				outletSrcTestProtectedDir)
-				&& !outletSrcTestDir
-						.equalsIgnoreCase(outletSrcTestProtectedDir)
-				&& outletSrcTestOnceDir
-						.equalsIgnoreCase(outletSrcTestProtectedDir)) {
-			project
-					.addTestCompileSourceRoot(getNormalizedFilePath(outletSrcTestProtectedDir));
+		if (!project.getBuild().getTestSourceDirectory().equalsIgnoreCase(outletSrcTestProtectedDir)
+				&& !outletSrcTestDir.equalsIgnoreCase(outletSrcTestProtectedDir)
+				&& outletSrcTestOnceDir.equalsIgnoreCase(outletSrcTestProtectedDir)) {
+			project.addTestCompileSourceRoot(getNormalizedFilePath(outletSrcTestProtectedDir));
 		}
 	}
 
@@ -751,8 +689,7 @@ public class WorkflowMojo extends AbstractMojo {
 	 */
 	@SuppressWarnings("unchecked")
 	private void extendResources(String res, boolean forTest) throws Exception {
-		List<Resource> resources = (forTest) ? project.getTestResources()
-				: project.getResources();
+		List<Resource> resources = (forTest) ? project.getTestResources() : project.getResources();
 		File fileRes = null;
 
 		if (!new File(res).isAbsolute()) {
@@ -769,25 +706,21 @@ public class WorkflowMojo extends AbstractMojo {
 			}
 		}
 
-		getLog().info(
-				"Adding " + fileRes.getPath()
-						+ " to the list of current resources.");
+		getLog().info("Adding " + fileRes.getPath() + " to the list of current resources.");
 		Resource resource = new Resource();
 		resource.setDirectory(fileRes.getPath());
 		resources.add(resource);
 	}
 
 	/**
-	 * Creates the TimeStampFile. This is used to check the state of the
-	 * resources
+	 * Creates the TimeStampFile. This is used to check the state of the resources
 	 * 
 	 * @throws IOException
 	 */
 	private void createTimeStampFile() throws IOException {
 		File timeStampFile = null;
 
-		timeStampFile = new File(project.getBuild().getDirectory(),
-				timestampFileName);
+		timeStampFile = new File(project.getBuild().getDirectory(), timestampFileName);
 		timeStampFile.getParentFile().mkdirs();
 		if (timeStampFile.exists()) {
 			timeStampFile.delete();
@@ -799,8 +732,7 @@ public class WorkflowMojo extends AbstractMojo {
 	 * Returns the TimeStampFile or <code>null</code> if none exists.
 	 */
 	private File getTimeStampFile() {
-		File timeStampFile = new File(project.getBuild().getDirectory(),
-				timestampFileName);
+		File timeStampFile = new File(project.getBuild().getDirectory(), timestampFileName);
 
 		if (timeStampFile.exists()) {
 			return timeStampFile;
@@ -814,8 +746,7 @@ public class WorkflowMojo extends AbstractMojo {
 	private File getWorkflowDescriptorRoot() {
 
 		for (int i = 0; i < project.getBuild().getResources().size(); i++) {
-			Resource resource = (Resource) project.getBuild().getResources()
-					.get(i);
+			Resource resource = (Resource) project.getBuild().getResources().get(i);
 			if (resource.getDirectory().equalsIgnoreCase(defaultOawResourceDir)) {
 				isDefaultOawResourceDirManaged = true;
 			}
@@ -833,8 +764,7 @@ public class WorkflowMojo extends AbstractMojo {
 				Resource resource = (Resource) resources.get(i);
 				File directory = new File(resource.getDirectory());
 				if (directory.exists()) {
-					File workflowScript = new File(directory,
-							workflowDescriptor);
+					File workflowScript = new File(directory, workflowDescriptor);
 					if (workflowScript.exists()) {
 						workflowDescriptorRoot = directory;
 						break;

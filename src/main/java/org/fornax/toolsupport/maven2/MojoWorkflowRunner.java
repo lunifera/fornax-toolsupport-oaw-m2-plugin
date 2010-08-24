@@ -48,7 +48,6 @@ public class MojoWorkflowRunner {
 				javaTask.setClassname(WorkflowMojo.MWE2_WORKFLOWRUNNER);
 				javaTask.setArgs(workflowDescriptor);
 				log.debug(javaTask.getCommandLine().toString());
-				
 				javaTask.getProject().executeTarget("default");
 				return true;
 			} else {
