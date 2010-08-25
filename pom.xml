@@ -9,8 +9,8 @@
     <groupId>org.fornax.toolsupport</groupId>
     <artifactId>fornax-oaw-m2-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>3.1.1-SNAPSHOT</version>
-    <name>oAW-M2-Plugin</name>
+    <version>3.2.0-SNAPSHOT</version>
+    <name>Model Workflow-M2-Plugin</name>
     <description> The Maven2-Plugin for the
 		Model Workflow execution (oAW 4.x / Eclipse MWE) 
 	</description>
@@ -113,6 +113,16 @@
                     <artifactId>ant-launcher</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+        	<groupId>commons-beanutils</groupId>
+        	<artifactId>commons-beanutils-core</artifactId>
+        	<version>1.8.3</version>
+        </dependency>
+        <dependency>
+        	<groupId>commons-lang</groupId>
+        	<artifactId>commons-lang</artifactId>
+        	<version>2.5</version>
         </dependency>
     </dependencies>
     <build>

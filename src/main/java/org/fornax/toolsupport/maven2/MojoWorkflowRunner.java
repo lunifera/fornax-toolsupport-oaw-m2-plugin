@@ -42,13 +42,15 @@ public class MojoWorkflowRunner {
 	
 	public boolean run() {
 		if (workflowRunner == null) throw new IllegalStateException("workflowRunnerClass not set");
-		try {
+		
+		try {			
 			if (WorkflowMojo.MWE2_WORKFLOWRUNNER.equals(workflowRunner.getClass().getName())) {
 				
 				javaTask.setClassname(WorkflowMojo.MWE2_WORKFLOWRUNNER);
 				javaTask.setArgs(workflowDescriptor);
 				log.debug(javaTask.getCommandLine().toString());
-				javaTask.getProject().executeTarget("default");
+				
+				javaTask.getProject().executeTarget("run-workflow");
 				return true;
 			} else {
 				if (progressMonitor == null) throw new IllegalStateException("progressMonitorClass not set");

@@ -16,8 +16,6 @@ package org.fornax.toolsupport.maven2;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -38,11 +36,7 @@ import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
-import org.apache.tools.ant.Project;
-import org.apache.tools.ant.Target;
 import org.apache.tools.ant.taskdefs.Java;
-import org.apache.tools.ant.taskdefs.Redirector;
-import org.apache.tools.ant.types.Path;
 import org.codehaus.classworlds.ClassRealm;
 import org.codehaus.classworlds.ClassWorld;
 import org.codehaus.classworlds.DuplicateRealmException;
@@ -57,14 +51,13 @@ import org.codehaus.plexus.util.FileUtils;
  * 
  * @phase generate-sources
  * @goal run-workflow
- * @execute goal="run-workflow"
  * @requiresDependencyResolution test
  * @description Executes the Workflow-Engine from the openArchitectureWare Generator-Framework
  * @author Thorsten Kamann <thorsten.kamann@googlemail.com>
  * @author Karsten Thoms <karsten.thoms@itemis.de>
  */
 public class WorkflowMojo extends AbstractMojo {
-	private static final String MOJO_VERSION = "3.1.0";
+	private static final String MOJO_VERSION = "3.1.1";
 	public static final String WFENGINE_OAW = "oaw";
 	public static final String WFENGINE_MWE = "mwe";
 	public static final String WFENGINE_MWE2 = "mwe2";
@@ -162,7 +155,7 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Directory for source-code test-artifacts. Existings artifacts will not be overwritten.
 	 * 
-	 * @parameter default-value="src/testgenerated/java"
+	 * @parameter default-value="src/test/generated/java"
 	 * @required
 	 */
 	private String outletResTestOnceDir;
@@ -205,6 +198,7 @@ public class WorkflowMojo extends AbstractMojo {
 	 * The entries of this list can be relative path to the project root or absolute path.
 	 * 
 	 * @parameter
+	 * @deprecated Use checkFilesets instead
 	 */
 	private List<String> checkResources;
 	/**
@@ -264,12 +258,26 @@ public class WorkflowMojo extends AbstractMojo {
 	 * @parameter
 	 */
 	private Map<String, String> properties;
+	
+	/**
+	 * Additional settings for the JVM during execution
+	 * @since 3.1.1 
+	 * @parameter
+	 */
+	private JvmSettings jvmSettings;
+
+	/**
+	 * Security Manager settings
+	 * @since 3.1.1 
+	 * @parameter
+	 */
+	private SecuritySettings securitySettings;
 
 	private boolean isDefaultOawResourceDirManaged = false;
 
 	private ClassRealm workflowRealm;
-	private Java javaTask;
 
+	private Java javaTask;
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -369,20 +377,31 @@ public class WorkflowMojo extends AbstractMojo {
 				wfr.setWorkflowDescriptor(workflowDescriptor);
 			}
 
-			boolean success = wfr.run();
-			if (success) {
-				getLog().info("Workflow '" + workflowDescriptor + "' finished.");
-			} else {
-				System.setProperty("user.dir", prevUserDir);
-				throw new MojoExecutionException("Generation failed");
-			}
-			System.setProperty("user.dir", prevUserDir);
-
+			//////////////////////////////////////////////////////////////////
+			// Execute the workflow
+			boolean success = false;
 			try {
-				createTimeStampFile();
-			} catch (IOException ie) {
-				throw new MojoExecutionException("Could not create the timestamp file.", ie);
+				if (securitySettings!=null) {
+					javaTask.createPermissions().setSecurityManager();
+				}
+				success = wfr.run();
+				if (success) {
+					createTimeStampFile();
+					getLog().info("Workflow '" + workflowDescriptor + "' finished.");
+				} else {
+					throw new MojoExecutionException("Workflow execution failed.");
+				}
+			} catch (RuntimeException e) {
+				success = false;
+			} finally {
+				System.setProperty("user.dir", prevUserDir);
+				if (securitySettings!=null) {
+					javaTask.createPermissions().restoreSecurityManager();
+				}
 			}
+			//////////////////////////////////////////////////////////////////
+			
+
 		}
 
 		if (project != null) {
@@ -563,47 +582,19 @@ public class WorkflowMojo extends AbstractMojo {
 		Thread.currentThread().setContextClassLoader(workflowRealm.getClassLoader());
 	}
 
-	private void initJavaTask(MojoWorkflowRunner wfr) {
-		Project antProject = new Project();
-		antProject.setBaseDir(project.getBasedir());
-		javaTask = new Java();
-		javaTask.setProject(antProject);
-
-		String classpath = "";
-		for (URL url : workflowRealm.getConstituents()) {
-			if ("".equals(classpath)) {
-				classpath += url.getFile();
-			} else {
-				classpath += System.getProperty("path.separator") + url.getFile();
-			}
-		}
-		javaTask.setClasspath(new Path(antProject, classpath));
-		javaTask.setFork(true);
-		javaTask.setFailonerror(true);
-		javaTask.setInputString("y\n");
-
-		Target target = new Target();
-		antProject.addTarget("default", target);
-		target.addTask(javaTask);
+	private void initJavaTask (MojoWorkflowRunner wfr) {
+		JavaTaskBuilder builder = new JavaTaskBuilder(project, workflowRealm);
 		final MavenLogOutputStream os = new MavenLogOutputStream(getLog());
-		Redirector redirector = new Redirector(javaTask) {
-			@Override
-			public OutputStream getOutputStream() {
-				return os;
-			}
-			@Override
-			public OutputStream getErrorStream() {
-				return os;
-			}
-		};
-		try {
-			Field redirectorField = Java.class.getDeclaredField("redirector");
-			redirectorField.setAccessible(true);
-			redirectorField.set(javaTask, redirector);
-			redirectorField.setAccessible(false);
-		} catch (Exception e) { // SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException
-			throw new RuntimeException(e);
-		}
+
+		javaTask = builder
+			.fork(true)
+			.withJvmSettings(jvmSettings)
+			.failOnError(true)
+			.withInputString("y\n")
+			.withOutputStream(os)
+			.withSecuritySettings(securitySettings)
+			.build();
+
 		wfr.setJavaTask(javaTask);
 	}
 
@@ -713,19 +704,21 @@ public class WorkflowMojo extends AbstractMojo {
 	}
 
 	/**
-	 * Creates the TimeStampFile. This is used to check the state of the resources
-	 * 
-	 * @throws IOException
+	 * Creates the TimeStampFile. This is used to check the state of the resources.
 	 */
-	private void createTimeStampFile() throws IOException {
+	private void createTimeStampFile() {
 		File timeStampFile = null;
 
-		timeStampFile = new File(project.getBuild().getDirectory(), timestampFileName);
-		timeStampFile.getParentFile().mkdirs();
-		if (timeStampFile.exists()) {
-			timeStampFile.delete();
+		try {
+			timeStampFile = new File(project.getBuild().getDirectory(), timestampFileName);
+			timeStampFile.getParentFile().mkdirs();
+			if (timeStampFile.exists()) {
+				timeStampFile.delete();
+			}
+			timeStampFile.createNewFile();
+		} catch (IOException e) {
+			getLog().warn("Could not create the timestamp file. Reason: " + e.getMessage());
 		}
-		timeStampFile.createNewFile();
 	}
 
 	/**
