@@ -15,6 +15,7 @@
 package org.fornax.toolsupport.maven2;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 
 
 /**
@@ -57,7 +58,7 @@ public class Permission {
 
 	@Override
 	public String toString() {
-		return ToStringBuilder.reflectionToString(this);
+		return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
 	}
 
 	public org.apache.tools.ant.types.Permissions.Permission toAntPermission () {
