@@ -18,8 +18,10 @@ import java.io.FilePermission;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.net.URL;
-import java.util.PropertyPermission;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.PropertyPermission;
 
 import org.apache.maven.project.MavenProject;
 import org.apache.tools.ant.Location;
@@ -28,14 +30,14 @@ import org.apache.tools.ant.Target;
 import org.apache.tools.ant.taskdefs.Java;
 import org.apache.tools.ant.taskdefs.Redirector;
 import org.apache.tools.ant.types.Commandline;
+import org.apache.tools.ant.types.Environment.Variable;
 import org.apache.tools.ant.types.Path;
 import org.apache.tools.ant.types.Permissions;
-import org.apache.tools.ant.types.Environment.Variable;
 import org.codehaus.classworlds.ClassRealm;
 
 /**
  * Creates an {@link Java Ant Java task} that executes the workflow.
- * 
+ *
  * @author Karsten Thoms
  * @since 3.1.1
  */
@@ -46,13 +48,13 @@ public class JavaTaskBuilder {
 	private ClassRealm realm;
 	private JvmSettings jvmSettings;
 	private boolean fork;
-	
-	
+
+
 	public JavaTaskBuilder (MavenProject project, ClassRealm realm) {
 		this.mvnProject = project;
 		this.realm = realm;
 		this.javaTask = new Java();
-		
+
 		antProject.setBaseDir(project.getBasedir());
 		javaTask.setProject(antProject);
 		javaTask.setLocation(new Location(project.getBasedir().getAbsolutePath()));
@@ -61,7 +63,7 @@ public class JavaTaskBuilder {
 		target.addTask(javaTask);
 		configureClasspath();
 	}
-	
+
 	public JavaTaskBuilder fork (boolean fork) {
 		javaTask.setFork(fork);
 		this.fork = fork;
@@ -90,7 +92,7 @@ public class JavaTaskBuilder {
 
 		return this;
 	}
-	
+
 	public JavaTaskBuilder withOutputStream (final OutputStream os) {
 		Redirector redirector = new Redirector(javaTask) {
 			@Override
@@ -122,7 +124,7 @@ public class JavaTaskBuilder {
 			for (Permission p : securitySettings.getGrantedPermissions()) {
 				permissions.addConfiguredGrant(p.toAntPermission());
 			}
-			
+
 			// add default permissions
 			if (fork) {
 				permissions.addConfiguredGrant(createPermission(RuntimePermission.class, "exitVM", null));
@@ -144,11 +146,11 @@ public class JavaTaskBuilder {
 				permissions.addConfiguredGrant(createPermission(FilePermission.class, constituent.getFile(), "read"));
 			}
 			permissions.addConfiguredGrant(createPermission(FilePermission.class, javaTask.getCommandLine().getVmCommand().getExecutable(), "read, execute"));
-			
+
 		}
 		return this;
 	}
-	
+
 	private Permissions.Permission createPermission (Class<? extends java.security.Permission> permissionClass, String name, String actions ) {
 		Permissions.Permission p = new Permissions.Permission();
 		p.setClass(permissionClass.getName());
@@ -163,17 +165,28 @@ public class JavaTaskBuilder {
 		javaTask.setFailonerror(failOnError);
 		return this;
 	}
-	
+
 	public JavaTaskBuilder withInputString (String input) {
 		javaTask.setInputString(input);
 		return this;
 	}
-	
+
+	public JavaTaskBuilder withProperties (Map<String, String> properties) {
+		if (properties != null) {
+			for (Object key : properties.keySet()) {
+				// javaTask.createArg() would append the parameter at the beginning before the classname
+				// but it must be appended at the end.
+				Commandline.Argument newArg = javaTask.getCommandLine().getJavaCommand().createArgument(false);
+				newArg.setLine("-p" + key + "=" + properties.get(key));
+			}
+		}
+		return this;
+	}
 
 	public Java build () {
 		return javaTask;
 	}
-	
+
 	private void configureClasspath () {
 		String classpath = "";
 		for (URL url : realm.getConstituents()) {
