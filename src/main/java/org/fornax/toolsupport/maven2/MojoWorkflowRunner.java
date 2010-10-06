@@ -3,7 +3,7 @@
 *	Licensed under the Apache License, Version 2.0 (the "License");
 *	you may not use this file except in compliance with the License.
 * 	You may obtain a copy of the License at
-* 
+*
 *	http://www.apache.org/licenses/LICENSE-2.0
 *
 * 	Unless required by applicable law or agreed to in writing, software
@@ -23,7 +23,7 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.tools.ant.taskdefs.Java;
 
 /**
- * Local class to execute the Workflow Engine. 
+ * Local class to execute the Workflow Engine.
  * @author Thorsten Kamann <thorsten.kamann@googlemail.com>
  * @author Karsten Thoms <karsten.thoms@itemis.de>
  * @since 1.0.0
@@ -39,17 +39,13 @@ public class MojoWorkflowRunner {
 	private String workflowDescriptor;
 	private Map<String, String> params;
 	private Java javaTask;
-	
+
 	public boolean run() {
 		if (workflowRunner == null) throw new IllegalStateException("workflowRunnerClass not set");
-		
-		try {			
+
+		try {
 			if (WorkflowMojo.MWE2_WORKFLOWRUNNER.equals(workflowRunner.getClass().getName())) {
-				
-				javaTask.setClassname(WorkflowMojo.MWE2_WORKFLOWRUNNER);
-				javaTask.setArgs(workflowDescriptor);
 				log.debug(javaTask.getCommandLine().toString());
-				
 				javaTask.getProject().executeTarget("run-workflow");
 				return true;
 			} else {
@@ -109,9 +105,9 @@ public class MojoWorkflowRunner {
 		this.javaTask = javaTask;
 	}
 
-	
+
 	/**
-	 * Find the run method using reflection. Problem is that the ProgressMonitor interface is different. 
+	 * Find the run method using reflection. Problem is that the ProgressMonitor interface is different.
 	 * @param workflowRunner
 	 * @return The 'run' method from the Workflow executor class
 	 */
@@ -121,7 +117,7 @@ public class MojoWorkflowRunner {
 			if ("run".equals(m.getName())) {
 				Class<?>[] paramTypes = m.getParameterTypes();
 				if (WorkflowMojo.MWE2_WORKFLOWRUNNER.equals(workflowRunner.getName())) {
-					String[] stringArr = {}; 
+					String[] stringArr = {};
 					// MWE2
 					if (paramTypes.length==1
 						&& stringArr.getClass().equals(paramTypes[0])

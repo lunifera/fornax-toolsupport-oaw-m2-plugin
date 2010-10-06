@@ -312,7 +312,6 @@ public class WorkflowMojo extends AbstractMojo {
 
 		if (!isUpToDate()) {
 			extendCurrentClassloader(wfr);
-			initJavaTask(wfr);
 
 			params.put("basedir", project.getBasedir().getPath());
 			params.put("outlet.src.dir", getNormalizedFilePath(outletSrcDir));
@@ -345,15 +344,16 @@ public class WorkflowMojo extends AbstractMojo {
 				// do nothing
 			}
 
-			if (workflowRunnerClass != null) {
-				wfr.setWorkflowRunnerClass(workflowRunnerClass);
-			} else if (WFENGINE_OAW.equals(workflowEngine)) {
-				wfr.setWorkflowRunnerClass(OAW_WORKFLOWRUNNER);
-			} else if (WFENGINE_MWE.equals(workflowEngine)) {
-				wfr.setWorkflowRunnerClass(MWE_WORKFLOWRUNNER);
-			} else if (WFENGINE_MWE2.equals(workflowEngine)) {
-				wfr.setWorkflowRunnerClass(MWE2_WORKFLOWRUNNER);
+			if (workflowRunnerClass == null) {
+				if (WFENGINE_OAW.equals(workflowEngine)) {
+					workflowRunnerClass = OAW_WORKFLOWRUNNER;
+				} else if (WFENGINE_MWE.equals(workflowEngine)) {
+					workflowRunnerClass = MWE_WORKFLOWRUNNER;
+				} else if (WFENGINE_MWE2.equals(workflowEngine)) {
+					workflowRunnerClass = MWE2_WORKFLOWRUNNER;
+				}
 			}
+			wfr.setWorkflowRunnerClass(workflowRunnerClass);
 
 			// Set properties depending on workflow engine
 			if (WFENGINE_OAW.equals(workflowEngine) || WFENGINE_MWE.equals(workflowEngine)) {
@@ -368,14 +368,11 @@ public class WorkflowMojo extends AbstractMojo {
 					throw new MojoExecutionException("Could not find the Workflow-Descriptor \"" + workflowDescriptor + "\".");
 				}
 
-				wfr.setWorkflowDescriptor(workflowDescriptor);
 				wfr.setParams(params);
-			} else if (WFENGINE_MWE2.equals(workflowEngine)) {
-				if ("workflow.oaw".equals(workflowDescriptor)) {
-					workflowDescriptor = "workflow.mwe2";
-				}
-				wfr.setWorkflowDescriptor(workflowDescriptor);
 			}
+			wfr.setWorkflowDescriptor(workflowDescriptor);
+
+			initJavaTask(wfr);
 
 			//////////////////////////////////////////////////////////////////
 			// Execute the workflow
@@ -593,7 +590,9 @@ public class WorkflowMojo extends AbstractMojo {
 			.withInputString("y\n")
 			.withOutputStream(os)
 			.withSecuritySettings(securitySettings)
+			.withWorkflow(workflowDescriptor)
 			.withProperties(properties)
+			.withWorkflowLauncherClass(workflowRunnerClass)
 			.build();
 
 		wfr.setJavaTask(javaTask);

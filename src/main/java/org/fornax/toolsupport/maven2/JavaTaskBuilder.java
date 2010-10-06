@@ -183,6 +183,16 @@ public class JavaTaskBuilder {
 		return this;
 	}
 
+	public JavaTaskBuilder withWorkflow (String workflow) {
+		javaTask.createArg().setLine(workflow);
+		return this;
+	}
+
+	public JavaTaskBuilder withWorkflowLauncherClass (String launcherClass) {
+		javaTask.setClassname(launcherClass);
+		return this;
+	}
+
 	public Java build () {
 		return javaTask;
 	}
