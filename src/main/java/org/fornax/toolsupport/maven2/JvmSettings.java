@@ -21,12 +21,14 @@ import java.util.Properties;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 /**
- * 
+ *
  * @author Karsten Thoms
- * @since 3.1.1
+ * @since 3.2.0
  */
 public class JvmSettings {
 	private boolean fork;
+	private boolean copySysProperties;
+	private boolean copyEnvProperties;
 	private List<String> jvmArgs = new ArrayList<String>();
 	private Properties sysProperties = new Properties();
 	private Properties envProperties = new Properties();
@@ -37,6 +39,22 @@ public class JvmSettings {
 
 	public boolean isFork() {
 		return fork;
+	}
+
+	public void setCopySysProperties(boolean copySysProperties) {
+		this.copySysProperties = copySysProperties;
+	}
+
+	public boolean isCopySysProperties() {
+		return copySysProperties;
+	}
+
+	public void setCopyEnvProperties(boolean copyEnvProperties) {
+		this.copyEnvProperties = copyEnvProperties;
+	}
+
+	public boolean isCopyEnvProperties() {
+		return copyEnvProperties;
 	}
 
 	public void setJvmArgs(List<String> jvmArgs) {
@@ -52,20 +70,41 @@ public class JvmSettings {
 	}
 
 	public Properties getSysProperties() {
-		return sysProperties;
+		if (fork==true && copySysProperties) {
+			Properties props = new Properties(sysProperties);
+			props.putAll(System.getProperties());
+			return props;
+		} else {
+			return sysProperties;
+		}
 	}
-	
+
 	public void setEnvProperties(Properties envProperties) {
 		this.envProperties = envProperties;
 	}
 
 	public Properties getEnvProperties() {
-		return envProperties;
+		if (fork==true && copyEnvProperties) {
+			Properties props = new Properties(envProperties);
+			props.putAll(System.getenv());
+			return props;
+		} else {
+			return envProperties;
+		}
 	}
 
 	@Override
 	public String toString() {
-		return new ToStringBuilder(this).toString();
+		ToStringBuilder builder = new ToStringBuilder(this)
+			.append("fork",fork);
+		if (fork) {
+			builder.append("jvmArgs", jvmArgs);
+			builder.append("copySysProperties",copySysProperties);
+			builder.append("copyEnvProperties",copyEnvProperties);
+		}
+		builder.append("sysProperties", getSysProperties());
+		builder.append("envProperties", getEnvProperties());
+		return builder.toString();
 	}
 
 }

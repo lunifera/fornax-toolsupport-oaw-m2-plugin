@@ -21,7 +21,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
 /**
  * Represents a permission.
  * @author Karsten Thoms
- * @since 3.1.1
+ * @since 3.2.0
  * @see http://ant.apache.org/manual/Types/permissions.html
  */
 public class Permission {
@@ -31,7 +31,7 @@ public class Permission {
 	private String name;
 	/** The actions allowed. The actual contents depend on the Permission class and name. Optional. */
 	private String actions;
-	
+
 	public void setName(String name) {
 		this.name = name;
 	}

@@ -261,17 +261,18 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Additional settings for the JVM during execution
-	 * @since 3.1.1
+	 * @since 3.2.0
 	 * @parameter
 	 */
-	private JvmSettings jvmSettings;
+	private JvmSettings jvmSettings = new JvmSettings();
 
 	/**
 	 * Security Manager settings
-	 * @since 3.1.1
+	 * @since 3.2.0
 	 * @parameter
 	 */
 	private SecuritySettings securitySettings;
+
 
 	private boolean isDefaultOawResourceDirManaged = false;
 
@@ -287,7 +288,7 @@ public class WorkflowMojo extends AbstractMojo {
 		MojoWorkflowRunner wfr = null;
 		Map<String, String> params = new HashMap<String, String>();
 
-		getLog().info("Fornax oAW/MWE/MWE2 Maven2 Plugin V" + MOJO_VERSION);
+		getLog().info("Fornax Model Workflow Maven2 Plugin V" + MOJO_VERSION);
 
 		// Check workflowEngine parameter
 		if (!WFENGINE_OAW.equals(workflowEngine) && !WFENGINE_MWE.equals(workflowEngine) && !WFENGINE_MWE2.equals(workflowEngine)) {
@@ -334,15 +335,13 @@ public class WorkflowMojo extends AbstractMojo {
 			System.setProperty("user.dir", project.getBasedir().getPath());
 
 			// Initialize MojoWorkflowRunner
-			if (progressMonitorClass != null) {
-				wfr.setProgressMonitorClass(progressMonitorClass);
-			} else if (WFENGINE_OAW.equals(workflowEngine)) {
-				wfr.setProgressMonitorClass(OAW_PROGRESSMONITOR);
-			} else if (WFENGINE_MWE.equals(workflowEngine)) {
-				wfr.setProgressMonitorClass(MWE_PROGRESSMONITOR);
-			} else if (WFENGINE_MWE2.equals(workflowEngine)) {
-				// do nothing
-			}
+//			if (progressMonitorClass == null) {
+//				if (WFENGINE_OAW.equals(workflowEngine)) {
+//					progressMonitorClass = OAW_PROGRESSMONITOR;
+//				} else if (WFENGINE_MWE.equals(workflowEngine)) {
+//					progressMonitorClass = MWE_PROGRESSMONITOR;
+//				}
+//			}
 
 			if (workflowRunnerClass == null) {
 				if (WFENGINE_OAW.equals(workflowEngine)) {
@@ -353,7 +352,6 @@ public class WorkflowMojo extends AbstractMojo {
 					workflowRunnerClass = MWE2_WORKFLOWRUNNER;
 				}
 			}
-			wfr.setWorkflowRunnerClass(workflowRunnerClass);
 
 			// Set properties depending on workflow engine
 			if (WFENGINE_OAW.equals(workflowEngine) || WFENGINE_MWE.equals(workflowEngine)) {
@@ -367,10 +365,13 @@ public class WorkflowMojo extends AbstractMojo {
 				if (getWorkflowDescriptorRoot() == null) {
 					throw new MojoExecutionException("Could not find the Workflow-Descriptor \"" + workflowDescriptor + "\".");
 				}
-
-				wfr.setParams(params);
 			}
-			wfr.setWorkflowDescriptor(workflowDescriptor);
+			if (WFENGINE_MWE2.equals(workflowEngine)) {
+				if (!jvmSettings.isFork()) {
+					getLog().debug("Setting fork to true for MWE2.");
+					jvmSettings.setFork(true);
+				}
+			}
 
 			initJavaTask(wfr);
 
@@ -584,7 +585,6 @@ public class WorkflowMojo extends AbstractMojo {
 		final MavenLogOutputStream os = new MavenLogOutputStream(getLog());
 
 		javaTask = builder
-			.fork(true)
 			.withJvmSettings(jvmSettings)
 			.failOnError(true)
 			.withInputString("y\n")
@@ -592,6 +592,7 @@ public class WorkflowMojo extends AbstractMojo {
 			.withSecuritySettings(securitySettings)
 			.withWorkflow(workflowDescriptor)
 			.withProperties(properties)
+			.withProgressMonitorClass(progressMonitorClass)
 			.withWorkflowLauncherClass(workflowRunnerClass)
 			.build();
 

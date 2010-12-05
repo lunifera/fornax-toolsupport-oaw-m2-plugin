@@ -18,6 +18,8 @@ import java.io.FilePermission;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -25,7 +27,6 @@ import java.util.PropertyPermission;
 
 import org.apache.maven.project.MavenProject;
 import org.apache.tools.ant.Location;
-import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Target;
 import org.apache.tools.ant.taskdefs.Java;
 import org.apache.tools.ant.taskdefs.Redirector;
@@ -39,14 +40,13 @@ import org.codehaus.classworlds.ClassRealm;
  * Creates an {@link Java Ant Java task} that executes the workflow.
  *
  * @author Karsten Thoms
- * @since 3.1.1
+ * @since 3.2.0
  */
 public class JavaTaskBuilder {
-	private Project antProject = new Project();
+	private ProjectExt antProject;
 	private MavenProject mvnProject;
 	private Java javaTask;
 	private ClassRealm realm;
-	private JvmSettings jvmSettings;
 	private boolean fork;
 
 
@@ -55,7 +55,9 @@ public class JavaTaskBuilder {
 		this.realm = realm;
 		this.javaTask = new Java();
 
+		this.antProject = new ProjectExt(realm);
 		antProject.setBaseDir(project.getBasedir());
+		antProject.setCoreLoader(realm.getClassLoader());
 		javaTask.setProject(antProject);
 		javaTask.setLocation(new Location(project.getBasedir().getAbsolutePath()));
 		Target target = new Target();
@@ -64,33 +66,44 @@ public class JavaTaskBuilder {
 		configureClasspath();
 	}
 
+	public Java build () {
+		return javaTask;
+	}
+
 	public JavaTaskBuilder fork (boolean fork) {
 		javaTask.setFork(fork);
 		this.fork = fork;
+		antProject.setFork(fork);
 		return this;
 	}
 
 	public JavaTaskBuilder withJvmSettings (JvmSettings jvmSettings) {
 		if (jvmSettings != null) {
+			javaTask.setFork(jvmSettings.isFork());
 			for (String jvmArg : jvmSettings.getJvmArgs()) {
 				Commandline.Argument newArg = javaTask.createJvmarg();
 				newArg.setLine(jvmArg);
 			}
-			for (Entry<Object, Object> entry : jvmSettings.getSysProperties().entrySet()) {
-				Variable var = new Variable();
-				var.setKey(entry.getKey().toString());
-				var.setValue(String.valueOf(entry.getValue()));
+			for (Variable var : getVariables(jvmSettings.getSysProperties())) {
 				javaTask.addSysproperty(var);
 			}
-			for (Entry<Object, Object> entry : jvmSettings.getEnvProperties().entrySet()) {
-				Variable var = new Variable();
-				var.setKey(entry.getKey().toString());
-				var.setValue(String.valueOf(entry.getValue()));
+			for (Variable var : getVariables(jvmSettings.getEnvProperties())) {
 				javaTask.addEnv(var);
 			}
 		}
 
 		return this;
+	}
+
+	private List<Variable> getVariables (Properties props) {
+		ArrayList<Variable> vars = new ArrayList<Variable>();
+		for (Entry<Object, Object> entry : props.entrySet()) {
+			Variable var = new Variable();
+			var.setKey(entry.getKey().toString());
+			var.setValue(String.valueOf(entry.getValue()));
+			vars.add(var);
+		}
+		return vars;
 	}
 
 	public JavaTaskBuilder withOutputStream (final OutputStream os) {
@@ -126,6 +139,7 @@ public class JavaTaskBuilder {
 			}
 
 			// add default permissions
+			// these are the minimal permissions required to execute the workflow
 			if (fork) {
 				permissions.addConfiguredGrant(createPermission(RuntimePermission.class, "exitVM", null));
 				permissions.addConfiguredGrant(createPermission(RuntimePermission.class, "shutdownHooks", null));
@@ -193,8 +207,12 @@ public class JavaTaskBuilder {
 		return this;
 	}
 
-	public Java build () {
-		return javaTask;
+	public JavaTaskBuilder withProgressMonitorClass(String progressMonitorClass) {
+		if (progressMonitorClass != null) {
+			Commandline.Argument newArg = javaTask.getCommandLine().getJavaCommand().createArgument(false);
+			newArg.setLine("-m" + progressMonitorClass);
+		}
+		return this;
 	}
 
 	private void configureClasspath () {
@@ -208,4 +226,5 @@ public class JavaTaskBuilder {
 		}
 		javaTask.setClasspath(new Path(antProject, classpath));
 	}
+
 }
