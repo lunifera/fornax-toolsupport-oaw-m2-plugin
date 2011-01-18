@@ -14,6 +14,8 @@
  */
 package org.fornax.toolsupport.maven2;
 
+import static org.fornax.toolsupport.maven2.WorkflowMojo.CHANGED_FILES_PROPERTY;
+
 import java.io.FilePermission;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
@@ -85,6 +87,11 @@ public class JavaTaskBuilder {
 			}
 			if (jvmSettings.isFork() && jvmSettings.isCopySysProperties()) {
 				javaTask.setCloneVm(true);
+			} else if (jvmSettings.isFork() && System.getProperty(CHANGED_FILES_PROPERTY) != null) {
+				Variable var = new Variable();
+				var.setKey(CHANGED_FILES_PROPERTY);
+				var.setValue(System.getProperty(CHANGED_FILES_PROPERTY));
+				javaTask.addSysproperty(var);
 			}
 			for (Variable var : getVariables(jvmSettings.getEnvProperties())) {
 				javaTask.addEnv(var);

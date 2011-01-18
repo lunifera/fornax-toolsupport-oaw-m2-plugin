@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,8 +49,9 @@ import org.codehaus.plexus.util.FileUtils;
  * of models (e.g. UML, EMF).
  * <p>
  * You can configure resources that should be checked if they are up to date to avoid needless generator runs and optimize build
- * execution time.
- *
+ * execution time. The plugin will include the changed files in System.property 'fornax-oaw-m2-plugin.changedFiles' as comma
+ * separated absolute file names.
+ * 
  * @phase generate-sources
  * @goal run-workflow
  * @requiresDependencyResolution test
@@ -68,9 +71,11 @@ public class WorkflowMojo extends AbstractMojo {
 	public static final String MWE_PROGRESSMONITOR = "org.eclipse.emf.mwe.core.monitor.NullProgressMonitor";
 	public static final String MWE2_WORKFLOWRUNNER = "org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher";
 
+	static final String CHANGED_FILES_PROPERTY = "fornax-oaw-m2-plugin.changedFiles";
+
 	/**
 	 * The project itself. This parameter is set by maven.
-	 *
+	 * 
 	 * @parameter expression="${project}"
 	 * @required
 	 */
@@ -87,7 +92,7 @@ public class WorkflowMojo extends AbstractMojo {
 	 * The name of the workflow descriptor.
 	 * <p>
 	 * <i>Only supported for workflow engine 'oaw' and 'mwe'</i>
-	 *
+	 * 
 	 * @parameter default-value="workflow.mwe2"
 	 * @required
 	 */
@@ -96,7 +101,7 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Directory for source-code artifacts. If an artifact with the same name already exists, the generation of the artifact will
 	 * be skipped.
-	 *
+	 * 
 	 * @parameter expression="${project.build.sourceDirectory}"
 	 * @required
 	 */
@@ -105,7 +110,7 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Directory for non-source-code artifacts. If an artifact with the same name already exists, the generation of the artifact
 	 * will be skipped.
-	 *
+	 * 
 	 * @parameter default-value="src/main/resources"
 	 * @required
 	 */
@@ -113,7 +118,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for source-code artifacts. Existings artifacts will be overwritten.
-	 *
+	 * 
 	 * @parameter default-value="src/generated/java"
 	 * @required
 	 */
@@ -121,7 +126,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for non-source-code artifacts. Existings artifacts will be overwritten.
-	 *
+	 * 
 	 * @parameter default-value="src/generated/resources"
 	 * @required
 	 */
@@ -129,7 +134,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for source-code test-artifacts. Existings artifacts will be overwritten.
-	 *
+	 * 
 	 * @parameter default-value="src/test/generated/java"
 	 * @required
 	 */
@@ -137,7 +142,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for non-source-code test-artifacts. Existings artifacts will be overwritten.
-	 *
+	 * 
 	 * @parameter default-value="src/test/generated/resources"
 	 * @required
 	 */
@@ -146,7 +151,7 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Directory for source-code artifacts. If an artifact with the same name already exists, the generation of the artifact will
 	 * be skipped.
-	 *
+	 * 
 	 * @parameter expression="${project.build.testSourceDirectory}"
 	 * @required
 	 */
@@ -154,7 +159,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for source-code test-artifacts. Existings artifacts will not be overwritten.
-	 *
+	 * 
 	 * @parameter default-value="src/test/generated/java"
 	 * @required
 	 */
@@ -162,7 +167,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for source-code artifacts with Protected Regions.
-	 *
+	 * 
 	 * @parameter default-value="src/protected/java"
 	 * @required
 	 */
@@ -170,7 +175,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for non-source-code artifacts with Protected Regions.
-	 *
+	 * 
 	 * @parameter default-value="src/protected/resources"
 	 * @required
 	 */
@@ -178,7 +183,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for source-code test-artifacts with Protected Regions.
-	 *
+	 * 
 	 * @parameter default-value="src/test/protected/java"
 	 * @required
 	 */
@@ -186,7 +191,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for non-source-code test-artifacts with Protected Regions.
-	 *
+	 * 
 	 * @parameter default-value="src/test/protected/resources"
 	 * @required
 	 */
@@ -196,16 +201,17 @@ public class WorkflowMojo extends AbstractMojo {
 	 * A <code>java.util.List</code> with resources that will be checked on up to date. If all resources are uptodate the plugin
 	 * stopps the execution, because there are nothing newer to regenerate. <br/>
 	 * The entries of this list can be relative path to the project root or absolute path.
-	 *
+	 * 
 	 * @parameter
 	 * @deprecated Use checkFilesets instead
 	 */
+	@Deprecated
 	private List<String> checkResources;
 	/**
 	 * A <code>java.util.List</code> with resources that will be checked on up to date. If all resources are up to date the plugin
 	 * stops the execution, because there are no files to regenerate. <br/>
 	 * The entries of this list can be relative path to the project root or absolute path.
-	 *
+	 * 
 	 * @parameter
 	 */
 	private FileSet[] checkFilesets;
@@ -219,7 +225,7 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Defines the directory containing the runtime configurations, resources (eg. the models, log-configurations,
 	 * properties,...). This directory will be added to the classpath temporarily, but removed after the generation.
-	 *
+	 * 
 	 * @parameter default-value="oaw-generator"
 	 * @required
 	 */
@@ -232,7 +238,7 @@ public class WorkflowMojo extends AbstractMojo {
 	 * <li><tt>mwe</tt>: Eclipse Model Workflow Engine (MWE)
 	 * <li><tt>mwe2</tt>: Eclipse Model Workflow Engine 2 (MWE2)
 	 * </ul>
-	 *
+	 * 
 	 * @parameter default-value="mwe2"
 	 * @required
 	 */
@@ -254,34 +260,36 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Additional Map with parameter for the generator
-	 *
+	 * 
 	 * @parameter
 	 */
 	private Map<String, String> properties;
 
 	/**
 	 * Additional settings for the JVM during execution
+	 * 
 	 * @since 3.2.0
 	 * @parameter
 	 */
-	private JvmSettings jvmSettings = new JvmSettings();
+	private final JvmSettings jvmSettings = new JvmSettings();
 
 	/**
 	 * Security Manager settings
+	 * 
 	 * @since 3.2.0
 	 * @parameter
 	 */
 	private SecuritySettings securitySettings;
-
 
 	private boolean isDefaultOawResourceDirManaged = false;
 
 	private ClassRealm workflowRealm;
 
 	private Java javaTask;
+
 	/*
 	 * (non-Javadoc)
-	 *
+	 * 
 	 * @see org.apache.maven.plugin.Mojo#execute()
 	 */
 	public void execute() throws MojoExecutionException {
@@ -310,8 +318,9 @@ public class WorkflowMojo extends AbstractMojo {
 				timeStampFile.delete();
 			}
 		}
-
-		if (!isUpToDate()) {
+		Set<String> changedFiles = changedFiles();
+		if (changedFiles == null || !changedFiles.isEmpty()) {
+			addChangedFilesToSystemProperties(changedFiles);
 			extendCurrentClassloader(wfr);
 
 			params.put("basedir", project.getBasedir().getPath());
@@ -335,13 +344,13 @@ public class WorkflowMojo extends AbstractMojo {
 			System.setProperty("user.dir", project.getBasedir().getPath());
 
 			// Initialize MojoWorkflowRunner
-//			if (progressMonitorClass == null) {
-//				if (WFENGINE_OAW.equals(workflowEngine)) {
-//					progressMonitorClass = OAW_PROGRESSMONITOR;
-//				} else if (WFENGINE_MWE.equals(workflowEngine)) {
-//					progressMonitorClass = MWE_PROGRESSMONITOR;
-//				}
-//			}
+			// if (progressMonitorClass == null) {
+			// if (WFENGINE_OAW.equals(workflowEngine)) {
+			// progressMonitorClass = OAW_PROGRESSMONITOR;
+			// } else if (WFENGINE_MWE.equals(workflowEngine)) {
+			// progressMonitorClass = MWE_PROGRESSMONITOR;
+			// }
+			// }
 
 			if (workflowRunnerClass == null) {
 				if (WFENGINE_OAW.equals(workflowEngine)) {
@@ -375,11 +384,11 @@ public class WorkflowMojo extends AbstractMojo {
 
 			initJavaTask(wfr);
 
-			//////////////////////////////////////////////////////////////////
+			// ////////////////////////////////////////////////////////////////
 			// Execute the workflow
 			boolean success = false;
 			try {
-				if (securitySettings!=null) {
+				if (securitySettings != null) {
 					javaTask.createPermissions().setSecurityManager();
 				}
 				success = wfr.run();
@@ -393,12 +402,11 @@ public class WorkflowMojo extends AbstractMojo {
 				success = false;
 			} finally {
 				System.setProperty("user.dir", prevUserDir);
-				if (securitySettings!=null) {
+				if (securitySettings != null) {
 					javaTask.createPermissions().restoreSecurityManager();
 				}
 			}
-			//////////////////////////////////////////////////////////////////
-
+			// ////////////////////////////////////////////////////////////////
 
 		}
 
@@ -427,20 +435,34 @@ public class WorkflowMojo extends AbstractMojo {
 
 	}
 
+	private void addChangedFilesToSystemProperties(Set<String> changedFiles) {
+		if (changedFiles == null) {
+			return;
+		}
+		StringBuilder value = new StringBuilder();
+		for (Iterator<String> iter = changedFiles.iterator(); iter.hasNext();) {
+			value.append(iter.next());
+			if (iter.hasNext()) {
+				value.append(",");
+			}
+		}
+		System.setProperty(CHANGED_FILES_PROPERTY, value.toString());
+	}
+
 	/**
-	 * Indicates whether all resources are uptodate
-	 *
-	 * @return <code>true</code> if all resources are uptodate otherwise <code>false</code>
+	 * The file names in the checkFilesets that have been modified since previous generation. Empty if no files changed. null if
+	 * there is no timestamp file to compare against, i.e. always run the generator
 	 */
-	private boolean isUpToDate() {
-		final SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd-hh:mm:ss");
+	private Set<String> changedFiles() {
+		Set<String> result = new HashSet<String>();
+		final SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd-HH:mm:ss");
 		File basedir = project.getBasedir();
 		File timeStampFile = getTimeStampFile();
 
 		// If there is no timestamp file to compare against then always run the
 		// generator
 		if (timeStampFile == null) {
-			return false;
+			return null;
 		}
 
 		List<FileSet> checkSets = new ArrayList<FileSet>();
@@ -478,8 +500,6 @@ public class WorkflowMojo extends AbstractMojo {
 		if (getLog().isDebugEnabled()) {
 			getLog().debug("Generator timestamp: " + df.format(new Date(timeStampFile.lastModified())));
 		}
-		int outdatedFiles = 0;
-		File lastOutdatedResource = null;
 		for (File checkResource : filesToCheck) {
 			if (getLog().isDebugEnabled())
 				getLog().debug(checkResource.getAbsolutePath());
@@ -493,35 +513,34 @@ public class WorkflowMojo extends AbstractMojo {
 			}
 
 			if (checkResource.lastModified() > timeStampFile.lastModified()) {
-				outdatedFiles++;
-				lastOutdatedResource = checkResource;
+				result.add(checkResource.getAbsolutePath());
 			}
 		}
 		if (getLog().isInfoEnabled()) {
-			if (outdatedFiles == 1) {
-				String fileName = lastOutdatedResource.getAbsolutePath();
+			if (result.size() == 1) {
+				String fileName = result.iterator().next();
 				if (fileName.startsWith(project.getBasedir().getAbsolutePath())) {
 					fileName = fileName.substring(project.getBasedir().getAbsolutePath().length() + 1);
 				}
 				final String message = MessageFormat.format("{0} has been modified since last generator run at {1}.", fileName,
 						df.format(new Date(timeStampFile.lastModified())));
 				getLog().info(message);
-			} else if (outdatedFiles > 1) {
+			} else if (result.size() > 1) {
 				final String message = MessageFormat.format(
-						"{0} checked resources have been modified since last generator run at {1}.", outdatedFiles, df
-								.format(new Date(timeStampFile.lastModified())));
+						"{0} checked resources have been modified since last generator run at {1}.", result.size(),
+						df.format(new Date(timeStampFile.lastModified())));
 				getLog().info(message);
 			} else {
 				this.getLog().info("Everything is up to date. No generation is needed.");
 			}
 		}
 
-		return outdatedFiles == 0;
+		return result;
 	}
 
 	/**
 	 * Extends the current classloader with all resource path and the given additional ClassLoaderURLs.
-	 *
+	 * 
 	 * @param wfr
 	 *            The current classloader to extend
 	 */
@@ -580,28 +599,20 @@ public class WorkflowMojo extends AbstractMojo {
 		Thread.currentThread().setContextClassLoader(workflowRealm.getClassLoader());
 	}
 
-	private void initJavaTask (MojoWorkflowRunner wfr) {
+	private void initJavaTask(MojoWorkflowRunner wfr) {
 		JavaTaskBuilder builder = new JavaTaskBuilder(project, workflowRealm);
 		final MavenLogOutputStream os = new MavenLogOutputStream(getLog());
 
-		javaTask = builder
-			.withJvmSettings(jvmSettings)
-			.failOnError(true)
-			.withInputString("y\n")
-			.withOutputStream(os)
-			.withSecuritySettings(securitySettings)
-			.withWorkflow(workflowDescriptor)
-			.withProperties(properties)
-			.withProgressMonitorClass(progressMonitorClass)
-			.withWorkflowLauncherClass(workflowRunnerClass)
-			.build();
+		javaTask = builder.withJvmSettings(jvmSettings).failOnError(true).withInputString("y\n").withOutputStream(os)
+				.withSecuritySettings(securitySettings).withWorkflow(workflowDescriptor).withProperties(properties)
+				.withProgressMonitorClass(progressMonitorClass).withWorkflowLauncherClass(workflowRunnerClass).build();
 
 		wfr.setJavaTask(javaTask);
 	}
 
 	/**
 	 * Converts the given path to an url
-	 *
+	 * 
 	 * @param path
 	 *            The path to convert
 	 * @return The converted <code>java.net.URL</code>
@@ -618,7 +629,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Resolve the given path. That means that the given path is converted to an absolute path
-	 *
+	 * 
 	 * @param path
 	 *            The path to resolve
 	 * @return The resolved path as <code>java.io.File</code>
@@ -674,7 +685,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Extends the configured resources with the given resource
-	 *
+	 * 
 	 * @param res
 	 *            The res to extend the current resources with
 	 * @throws Exception
