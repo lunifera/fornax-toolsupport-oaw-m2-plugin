@@ -38,19 +38,18 @@ import org.codehaus.classworlds.ClassRealm;
 
 /**
  * Creates an {@link Java Ant Java task} that executes the workflow.
- *
+ * 
  * @author Karsten Thoms
  * @since 3.2.0
  */
 public class JavaTaskBuilder {
-	private ProjectExt antProject;
-	private MavenProject mvnProject;
-	private Java javaTask;
-	private ClassRealm realm;
+	private final ProjectExt antProject;
+	private final MavenProject mvnProject;
+	private final Java javaTask;
+	private final ClassRealm realm;
 	private boolean fork;
 
-
-	public JavaTaskBuilder (MavenProject project, ClassRealm realm) {
+	public JavaTaskBuilder(MavenProject project, ClassRealm realm) {
 		this.mvnProject = project;
 		this.realm = realm;
 		this.javaTask = new Java();
@@ -66,26 +65,26 @@ public class JavaTaskBuilder {
 		configureClasspath();
 	}
 
-	public Java build () {
+	public Java build() {
 		return javaTask;
 	}
 
-	public JavaTaskBuilder fork (boolean fork) {
+	public JavaTaskBuilder fork(boolean fork) {
 		javaTask.setFork(fork);
 		this.fork = fork;
 		antProject.setFork(fork);
 		return this;
 	}
 
-	public JavaTaskBuilder withJvmSettings (JvmSettings jvmSettings) {
+	public JavaTaskBuilder withJvmSettings(JvmSettings jvmSettings) {
 		if (jvmSettings != null) {
 			javaTask.setFork(jvmSettings.isFork());
 			for (String jvmArg : jvmSettings.getJvmArgs()) {
 				Commandline.Argument newArg = javaTask.createJvmarg();
 				newArg.setLine(jvmArg);
 			}
-			for (Variable var : getVariables(jvmSettings.getSysProperties())) {
-				javaTask.addSysproperty(var);
+			if (jvmSettings.isFork() && jvmSettings.isCopySysProperties()) {
+				javaTask.setCloneVm(true);
 			}
 			for (Variable var : getVariables(jvmSettings.getEnvProperties())) {
 				javaTask.addEnv(var);
@@ -95,7 +94,7 @@ public class JavaTaskBuilder {
 		return this;
 	}
 
-	private List<Variable> getVariables (Properties props) {
+	private List<Variable> getVariables(Properties props) {
 		ArrayList<Variable> vars = new ArrayList<Variable>();
 		for (Entry<Object, Object> entry : props.entrySet()) {
 			Variable var = new Variable();
@@ -106,12 +105,13 @@ public class JavaTaskBuilder {
 		return vars;
 	}
 
-	public JavaTaskBuilder withOutputStream (final OutputStream os) {
+	public JavaTaskBuilder withOutputStream(final OutputStream os) {
 		Redirector redirector = new Redirector(javaTask) {
 			@Override
 			public OutputStream getOutputStream() {
 				return os;
 			}
+
 			@Override
 			public OutputStream getErrorStream() {
 				return os;
@@ -128,7 +128,7 @@ public class JavaTaskBuilder {
 		return this;
 	}
 
-	public JavaTaskBuilder withSecuritySettings (SecuritySettings securitySettings) {
+	public JavaTaskBuilder withSecuritySettings(SecuritySettings securitySettings) {
 		if (securitySettings != null) {
 			Permissions permissions = javaTask.createPermissions();
 			for (Permission p : securitySettings.getGrantedPermissions()) {
@@ -152,40 +152,43 @@ public class JavaTaskBuilder {
 			permissions.addConfiguredGrant(createPermission(PropertyPermission.class, "user.dir", "read, write"));
 			permissions.addConfiguredGrant(createPermission(PropertyPermission.class, "ant.build.clonevm", "read"));
 
-			permissions.addConfiguredGrant(createPermission(FilePermission.class, mvnProject.getBasedir().getAbsolutePath()+"/-", "read, write"));
+			permissions.addConfiguredGrant(createPermission(FilePermission.class, mvnProject.getBasedir().getAbsolutePath()
+					+ "/-", "read, write"));
 			// see Execute#getProcEnvCommand()
 			permissions.addConfiguredGrant(createPermission(FilePermission.class, "/bin/env", "read"));
 			permissions.addConfiguredGrant(createPermission(FilePermission.class, "/usr/bin/env", "read, execute"));
 			for (URL constituent : realm.getConstituents()) {
 				permissions.addConfiguredGrant(createPermission(FilePermission.class, constituent.getFile(), "read"));
 			}
-			permissions.addConfiguredGrant(createPermission(FilePermission.class, javaTask.getCommandLine().getVmCommand().getExecutable(), "read, execute"));
+			permissions.addConfiguredGrant(createPermission(FilePermission.class, javaTask.getCommandLine().getVmCommand()
+					.getExecutable(), "read, execute"));
 
 		}
 		return this;
 	}
 
-	private Permissions.Permission createPermission (Class<? extends java.security.Permission> permissionClass, String name, String actions ) {
+	private Permissions.Permission createPermission(Class<? extends java.security.Permission> permissionClass, String name,
+			String actions) {
 		Permissions.Permission p = new Permissions.Permission();
 		p.setClass(permissionClass.getName());
 		p.setName(name);
-		if (actions!=null) {
+		if (actions != null) {
 			p.setActions(actions);
 		}
 		return p;
 	}
 
-	public JavaTaskBuilder failOnError (boolean failOnError) {
+	public JavaTaskBuilder failOnError(boolean failOnError) {
 		javaTask.setFailonerror(failOnError);
 		return this;
 	}
 
-	public JavaTaskBuilder withInputString (String input) {
+	public JavaTaskBuilder withInputString(String input) {
 		javaTask.setInputString(input);
 		return this;
 	}
 
-	public JavaTaskBuilder withProperties (Map<String, String> properties) {
+	public JavaTaskBuilder withProperties(Map<String, String> properties) {
 		if (properties != null) {
 			for (Object key : properties.keySet()) {
 				// javaTask.createArg() would append the parameter at the beginning before the classname
@@ -197,12 +200,12 @@ public class JavaTaskBuilder {
 		return this;
 	}
 
-	public JavaTaskBuilder withWorkflow (String workflow) {
+	public JavaTaskBuilder withWorkflow(String workflow) {
 		javaTask.createArg().setLine(workflow);
 		return this;
 	}
 
-	public JavaTaskBuilder withWorkflowLauncherClass (String launcherClass) {
+	public JavaTaskBuilder withWorkflowLauncherClass(String launcherClass) {
 		javaTask.setClassname(launcherClass);
 		return this;
 	}
@@ -215,7 +218,7 @@ public class JavaTaskBuilder {
 		return this;
 	}
 
-	private void configureClasspath () {
+	private void configureClasspath() {
 		String classpath = "";
 		for (URL url : realm.getConstituents()) {
 			if ("".equals(classpath)) {
