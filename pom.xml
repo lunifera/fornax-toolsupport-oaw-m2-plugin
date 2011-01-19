@@ -9,7 +9,7 @@
     <groupId>org.fornax.toolsupport</groupId>
     <artifactId>fornax-oaw-m2-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.2.1-SNAPSHOT</version>
     <name>Model Workflow-M2-Plugin</name>
     <description> The Maven2-Plugin for the
 		Model Workflow execution (oAW 4.x / Eclipse MWE) 
@@ -185,6 +185,25 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
+            <distributionManagement>
+				<repository>
+					<id>releases.fornax-platform.org</id>
+					<url>dav:http://fornax-platform.org/nexus/content/repositories/releases</url>
+				</repository>
+				<snapshotRepository>
+					<id>snapshots.fornax-platform.org</id>
+					<url>dav:http://fornax-platform.org/nexus/content/repositories/snapshots</url>
+				</snapshotRepository>
+			</distributionManagement>
+            <repositories>
+            	<repository>
+					<id>fornax-platform.org</id>
+					<name>Fornax Repository</name>
+					<url>http://fornax-platform.org/nexus/content/repositories/public</url>
+					<releases><enabled>true</enabled></releases>
+					<snapshots><enabled>true</enabled></snapshots>
+				</repository>
+            </repositories>
             <pluginRepositories>
                 <!-- Maven Replacer Plugin -->
                 <pluginRepository>
