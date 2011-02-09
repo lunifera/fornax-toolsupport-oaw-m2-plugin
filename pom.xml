@@ -158,6 +158,16 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
+            <repositories>
+            	<!-- Need this to download fornax-parent -->
+            	<repository>
+					<id>fornax-platform.org</id>
+					<name>Fornax Repository</name>
+					<url>http://fornax-platform.org/nexus/content/repositories/public</url>
+					<releases><enabled>true</enabled></releases>
+					<snapshots><enabled>true</enabled></snapshots>
+				</repository>
+            </repositories>
             <pluginRepositories>
                 <!-- Maven Replacer Plugin -->
                 <pluginRepository>
