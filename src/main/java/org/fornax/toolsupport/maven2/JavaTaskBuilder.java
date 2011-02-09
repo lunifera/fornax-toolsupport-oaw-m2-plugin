@@ -61,6 +61,7 @@ public class JavaTaskBuilder {
 		antProject.setCoreLoader(realm.getClassLoader());
 		javaTask.setProject(antProject);
 		javaTask.setLocation(new Location(project.getBasedir().getAbsolutePath()));
+		javaTask.setDir(project.getBasedir());
 		Target target = new Target();
 		antProject.addTarget("run-workflow", target);
 		target.addTask(javaTask);
