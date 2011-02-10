@@ -296,7 +296,7 @@ public class WorkflowMojo extends AbstractMojo {
 		MojoWorkflowRunner wfr = null;
 		Map<String, String> params = new HashMap<String, String>();
 
-		getLog().info("Fornax Model Workflow Maven2 Plugin V" + MOJO_VERSION);
+		getLog().info("Fornax Model Workflow Maven2 Plugin V" + project.getVersion());
 
 		// Check workflowEngine parameter
 		if (!WFENGINE_OAW.equals(workflowEngine) && !WFENGINE_MWE.equals(workflowEngine) && !WFENGINE_MWE2.equals(workflowEngine)) {
