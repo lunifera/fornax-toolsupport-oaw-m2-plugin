@@ -51,7 +51,7 @@ import org.codehaus.plexus.util.FileUtils;
  * You can configure resources that should be checked if they are up to date to avoid needless generator runs and optimize build
  * execution time. The plugin will include the changed files in System.property 'fornax-oaw-m2-plugin.changedFiles' as comma
  * separated absolute file names.
- * 
+ *
  * @phase generate-sources
  * @goal run-workflow
  * @requiresDependencyResolution test
@@ -75,7 +75,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * The project itself. This parameter is set by maven.
-	 * 
+	 *
 	 * @parameter expression="${project}"
 	 * @required
 	 */
@@ -92,7 +92,7 @@ public class WorkflowMojo extends AbstractMojo {
 	 * The name of the workflow descriptor.
 	 * <p>
 	 * <i>Only supported for workflow engine 'oaw' and 'mwe'</i>
-	 * 
+	 *
 	 * @parameter default-value="workflow.mwe2"
 	 * @required
 	 */
@@ -101,7 +101,7 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Directory for source-code artifacts. If an artifact with the same name already exists, the generation of the artifact will
 	 * be skipped.
-	 * 
+	 *
 	 * @parameter expression="${project.build.sourceDirectory}"
 	 * @required
 	 */
@@ -110,7 +110,7 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Directory for non-source-code artifacts. If an artifact with the same name already exists, the generation of the artifact
 	 * will be skipped.
-	 * 
+	 *
 	 * @parameter default-value="src/main/resources"
 	 * @required
 	 */
@@ -118,7 +118,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for source-code artifacts. Existings artifacts will be overwritten.
-	 * 
+	 *
 	 * @parameter default-value="src/generated/java"
 	 * @required
 	 */
@@ -126,7 +126,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for non-source-code artifacts. Existings artifacts will be overwritten.
-	 * 
+	 *
 	 * @parameter default-value="src/generated/resources"
 	 * @required
 	 */
@@ -134,7 +134,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for source-code test-artifacts. Existings artifacts will be overwritten.
-	 * 
+	 *
 	 * @parameter default-value="src/test/generated/java"
 	 * @required
 	 */
@@ -142,7 +142,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for non-source-code test-artifacts. Existings artifacts will be overwritten.
-	 * 
+	 *
 	 * @parameter default-value="src/test/generated/resources"
 	 * @required
 	 */
@@ -151,7 +151,7 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Directory for source-code artifacts. If an artifact with the same name already exists, the generation of the artifact will
 	 * be skipped.
-	 * 
+	 *
 	 * @parameter expression="${project.build.testSourceDirectory}"
 	 * @required
 	 */
@@ -159,7 +159,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for source-code test-artifacts. Existings artifacts will not be overwritten.
-	 * 
+	 *
 	 * @parameter default-value="src/test/generated/java"
 	 * @required
 	 */
@@ -167,7 +167,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for source-code artifacts with Protected Regions.
-	 * 
+	 *
 	 * @parameter default-value="src/protected/java"
 	 * @required
 	 */
@@ -175,7 +175,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for non-source-code artifacts with Protected Regions.
-	 * 
+	 *
 	 * @parameter default-value="src/protected/resources"
 	 * @required
 	 */
@@ -183,7 +183,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for source-code test-artifacts with Protected Regions.
-	 * 
+	 *
 	 * @parameter default-value="src/test/protected/java"
 	 * @required
 	 */
@@ -191,7 +191,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Directory for non-source-code test-artifacts with Protected Regions.
-	 * 
+	 *
 	 * @parameter default-value="src/test/protected/resources"
 	 * @required
 	 */
@@ -201,7 +201,7 @@ public class WorkflowMojo extends AbstractMojo {
 	 * A <code>java.util.List</code> with resources that will be checked on up to date. If all resources are uptodate the plugin
 	 * stopps the execution, because there are nothing newer to regenerate. <br/>
 	 * The entries of this list can be relative path to the project root or absolute path.
-	 * 
+	 *
 	 * @parameter
 	 * @deprecated Use checkFilesets instead
 	 */
@@ -211,7 +211,7 @@ public class WorkflowMojo extends AbstractMojo {
 	 * A <code>java.util.List</code> with resources that will be checked on up to date. If all resources are up to date the plugin
 	 * stops the execution, because there are no files to regenerate. <br/>
 	 * The entries of this list can be relative path to the project root or absolute path.
-	 * 
+	 *
 	 * @parameter
 	 */
 	private FileSet[] checkFilesets;
@@ -225,7 +225,7 @@ public class WorkflowMojo extends AbstractMojo {
 	/**
 	 * Defines the directory containing the runtime configurations, resources (eg. the models, log-configurations,
 	 * properties,...). This directory will be added to the classpath temporarily, but removed after the generation.
-	 * 
+	 *
 	 * @parameter default-value="oaw-generator"
 	 * @required
 	 */
@@ -238,7 +238,7 @@ public class WorkflowMojo extends AbstractMojo {
 	 * <li><tt>mwe</tt>: Eclipse Model Workflow Engine (MWE)
 	 * <li><tt>mwe2</tt>: Eclipse Model Workflow Engine 2 (MWE2)
 	 * </ul>
-	 * 
+	 *
 	 * @parameter default-value="mwe2"
 	 * @required
 	 */
@@ -260,14 +260,14 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Additional Map with parameter for the generator
-	 * 
+	 *
 	 * @parameter
 	 */
 	private Map<String, String> properties;
 
 	/**
 	 * Additional settings for the JVM during execution
-	 * 
+	 *
 	 * @since 3.2.0
 	 * @parameter
 	 */
@@ -275,7 +275,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Security Manager settings
-	 * 
+	 *
 	 * @since 3.2.0
 	 * @parameter
 	 */
@@ -289,7 +289,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.apache.maven.plugin.Mojo#execute()
 	 */
 	public void execute() throws MojoExecutionException {
@@ -339,9 +339,6 @@ public class WorkflowMojo extends AbstractMojo {
 			if (properties != null && properties.size() > 0) {
 				params.putAll(properties);
 			}
-
-			String prevUserDir = System.getProperty("user.dir");
-			System.setProperty("user.dir", project.getBasedir().getPath());
 
 			// Initialize MojoWorkflowRunner
 			// if (progressMonitorClass == null) {
@@ -401,7 +398,6 @@ public class WorkflowMojo extends AbstractMojo {
 			} catch (RuntimeException e) {
 				success = false;
 			} finally {
-				System.setProperty("user.dir", prevUserDir);
 				if (securitySettings != null) {
 					javaTask.createPermissions().restoreSecurityManager();
 				}
@@ -540,7 +536,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Extends the current classloader with all resource path and the given additional ClassLoaderURLs.
-	 * 
+	 *
 	 * @param wfr
 	 *            The current classloader to extend
 	 */
@@ -612,7 +608,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Converts the given path to an url
-	 * 
+	 *
 	 * @param path
 	 *            The path to convert
 	 * @return The converted <code>java.net.URL</code>
@@ -629,7 +625,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Resolve the given path. That means that the given path is converted to an absolute path
-	 * 
+	 *
 	 * @param path
 	 *            The path to resolve
 	 * @return The resolved path as <code>java.io.File</code>
@@ -685,7 +681,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Extends the configured resources with the given resource
-	 * 
+	 *
 	 * @param res
 	 *            The res to extend the current resources with
 	 * @throws Exception
