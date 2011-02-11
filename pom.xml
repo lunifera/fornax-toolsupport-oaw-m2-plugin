@@ -76,6 +76,15 @@
 		</developerConnection>
         <url>http://fisheye3.cenqua.com/browse/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/trunk</url>
     </scm>
+    <repositories>
+		<repository>
+			<id>fornax-platform.org</id>
+			<name>Fornax Repository</name>
+			<url>http://fornax-platform.org/nexus/content/repositories/public</url>
+			<releases><enabled>true</enabled></releases>
+			<snapshots><enabled>true</enabled></snapshots>
+		</repository>
+	</repositories>
     <dependencies>
         <dependency>
             <groupId>org.apache.maven</groupId>
@@ -160,7 +169,7 @@
         <profile>
             <id>RELEASE</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <build>
                 <plugins>
