@@ -39,6 +39,7 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.apache.tools.ant.taskdefs.Java;
+import org.apache.tools.ant.taskdefs.condition.Os;
 import org.codehaus.classworlds.ClassRealm;
 import org.codehaus.classworlds.ClassWorld;
 import org.codehaus.classworlds.DuplicateRealmException;
@@ -340,6 +341,17 @@ public class WorkflowMojo extends AbstractMojo {
 				params.putAll(properties);
 			}
 
+			String prevUserDir = System.getProperty("user.dir");
+			// Setting working dir of forked jvm works differently in different OS.
+			// changing user.dir is necessary for Mac
+			// We use org.apache.tools.ant.taskdefs.Java (and Execute) to create jvm.
+			// Note that by setting user.dir the to the same as project.basedir then Java.setDir
+			// will not be used, and therfore it is important to set it to something slightly
+			// different (ugly, I know)
+			if (Os.isFamily("mac")) {
+				System.setProperty("user.dir", project.getBasedir().getPath() + System.getProperty("file.separator") + ".");
+			}
+
 			// Initialize MojoWorkflowRunner
 			// if (progressMonitorClass == null) {
 			// if (WFENGINE_OAW.equals(workflowEngine)) {
@@ -398,6 +410,7 @@ public class WorkflowMojo extends AbstractMojo {
 			} catch (RuntimeException e) {
 				success = false;
 			} finally {
+				System.setProperty("user.dir", prevUserDir);
 				if (securitySettings != null) {
 					javaTask.createPermissions().restoreSecurityManager();
 				}
