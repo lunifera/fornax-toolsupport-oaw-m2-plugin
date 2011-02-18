@@ -39,7 +39,6 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.apache.tools.ant.taskdefs.Java;
-import org.apache.tools.ant.taskdefs.condition.Os;
 import org.codehaus.classworlds.ClassRealm;
 import org.codehaus.classworlds.ClassWorld;
 import org.codehaus.classworlds.DuplicateRealmException;
@@ -61,7 +60,7 @@ import org.codehaus.plexus.util.FileUtils;
  * @author Karsten Thoms <karsten.thoms@itemis.de>
  */
 public class WorkflowMojo extends AbstractMojo {
-	private static final String MOJO_VERSION = "3.2.1";
+	private static final String MOJO_VERSION = "3.2.2-SNAPSHOT";
 	public static final String WFENGINE_OAW = "oaw";
 	public static final String WFENGINE_MWE = "mwe";
 	public static final String WFENGINE_MWE2 = "mwe2";
@@ -343,14 +342,12 @@ public class WorkflowMojo extends AbstractMojo {
 
 			String prevUserDir = System.getProperty("user.dir");
 			// Setting working dir of forked jvm works differently in different OS.
-			// changing user.dir is necessary for Mac
+			// changing user.dir is necessary for (at least) Mac and Linux
 			// We use org.apache.tools.ant.taskdefs.Java (and Execute) to create jvm.
 			// Note that by setting user.dir the to the same as project.basedir then Java.setDir
 			// will not be used, and therfore it is important to set it to something slightly
 			// different (ugly, I know)
-			if (Os.isFamily("mac")) {
-				System.setProperty("user.dir", project.getBasedir().getPath() + System.getProperty("file.separator") + ".");
-			}
+			System.setProperty("user.dir", project.getBasedir().getPath() + System.getProperty("file.separator") + ".");
 
 			// Initialize MojoWorkflowRunner
 			// if (progressMonitorClass == null) {
