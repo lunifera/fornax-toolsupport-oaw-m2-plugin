@@ -15,7 +15,10 @@
 package org.fornax.toolsupport.maven2;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -28,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
@@ -72,6 +76,8 @@ public class WorkflowMojo extends AbstractMojo {
 	public static final String MWE2_WORKFLOWRUNNER = "org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher";
 
 	static final String CHANGED_FILES_PROPERTY = "fornax-oaw-m2-plugin.changedFiles";
+
+	private static final String M2ECLIPSE_WORKSPACE_STATE = "m2eclipse.workspace.state";
 
 	/**
 	 * The project itself. This parameter is set by maven.
@@ -583,19 +589,30 @@ public class WorkflowMojo extends AbstractMojo {
 			}
 		}
 
-		String path = "";
-		for (Artifact artifact : dependencies) {
-			if ("".equals(path)) {
-				path += artifact.getFile().getAbsolutePath();
+		Properties workspaceStateProps = null;
+		if (System.getProperty(M2ECLIPSE_WORKSPACE_STATE)!=null) {
+			getLog().info("Using M2Eclipse workspace artifacts resolution");
+			File f = new File(System.getProperty(M2ECLIPSE_WORKSPACE_STATE));
+			if (f.exists()) {
+				workspaceStateProps = new Properties();
+				try {
+					workspaceStateProps.load(new FileInputStream(f));
+				} catch (IOException e) {
+					getLog().warn("Could not open workspace state file. Disabling workspace resolution.");
+				}
 			} else {
-				path += System.getProperty("path.separator") + artifact.getFile().getAbsolutePath();
+				getLog().warn("Could not find workspace state file. Disabling workspace resolution.");
 			}
+		}
+		for (Artifact artifact : dependencies) {
 			try {
 				// only add archives, for non-archives an exception is thrown
 				new ZipFile(artifact.getFile());
-				workflowRealm.addConstituent(artifact.getFile().toURL());
+				final URL artifactUrl = getArtifactURL(artifact, workspaceStateProps);
+				workflowRealm.addConstituent(artifactUrl);
 				if (getLog().isDebugEnabled()) {
-					getLog().debug("Added dependency to classpath: " + artifact.getFile().toURL());
+					final boolean resolved = !artifact.getFile().toURL().equals(artifactUrl);
+					getLog().debug("Added dependency to classpath: " + artifactUrl + (resolved ? " (resolved from workspace)" : ""));
 				}
 			} catch (ZipException e) {
 			} catch (IOException e) {
@@ -603,6 +620,21 @@ public class WorkflowMojo extends AbstractMojo {
 		}
 		// make the child realm the ContextClassLoader
 		Thread.currentThread().setContextClassLoader(workflowRealm.getClassLoader());
+	}
+
+	private URL getArtifactURL (Artifact artifact, Properties workspaceStateProps) throws MalformedURLException {
+		if (workspaceStateProps==null)
+			return artifact.getFile().toURL();
+
+		final StringBuilder key = new StringBuilder()
+			.append(artifact.getGroupId()).append(':').append(artifact.getArtifactId()).append(':')
+			.append(artifact.getType()).append(':').append(artifact.getVersion());
+		String mappedPath = workspaceStateProps.getProperty(key.toString());
+		if (mappedPath != null) {
+			return new URL("file:"+mappedPath);
+		} else {
+			return artifact.getFile().toURL();
+		}
 	}
 
 	private void initJavaTask(MojoWorkflowRunner wfr) {
