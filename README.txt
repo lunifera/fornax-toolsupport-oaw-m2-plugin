@@ -11,4 +11,6 @@ ssh -t USER,fornax@shell.sourceforge.net create
 mvn -PRELEASE release:prepare
 3)
 mvn -PRELEASE release:perform
+4)
+mvn release:clean
 
