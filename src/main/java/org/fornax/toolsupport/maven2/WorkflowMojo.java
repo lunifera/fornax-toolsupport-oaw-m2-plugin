@@ -593,6 +593,11 @@ public class WorkflowMojo extends AbstractMojo {
 		if (System.getProperty(M2ECLIPSE_WORKSPACE_STATE)!=null) {
 			getLog().info("Using M2Eclipse workspace artifacts resolution");
 			File f = new File(System.getProperty(M2ECLIPSE_WORKSPACE_STATE));
+			if (!f.exists()) {
+				// workaround for https://bugs.eclipse.org/bugs/show_bug.cgi?id=341045
+				// TODO: Remove when bug is fixed
+				f = new File(System.getProperty(M2ECLIPSE_WORKSPACE_STATE).replace("org.eclipse.m2e.core", "org.maven.ide.eclipse"));
+			}
 			if (f.exists()) {
 				workspaceStateProps = new Properties();
 				try {
