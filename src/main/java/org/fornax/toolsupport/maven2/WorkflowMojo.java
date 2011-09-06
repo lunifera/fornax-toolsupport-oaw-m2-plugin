@@ -63,7 +63,7 @@ import org.codehaus.plexus.util.FileUtils;
  * @author Karsten Thoms <karsten.thoms@itemis.de>
  */
 public class WorkflowMojo extends AbstractMojo {
-	private static final String MOJO_VERSION = "3.3.0-SNAPSHOT";
+	private static final String MOJO_VERSION = "3.3.0";
 	public static final String WFENGINE_OAW = "oaw";
 	public static final String WFENGINE_MWE = "mwe";
 	public static final String WFENGINE_MWE2 = "mwe2";
