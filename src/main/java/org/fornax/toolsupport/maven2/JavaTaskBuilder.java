@@ -16,7 +16,9 @@ package org.fornax.toolsupport.maven2;
 
 import static org.fornax.toolsupport.maven2.WorkflowMojo.CHANGED_FILES_PROPERTY;
 
+import java.io.File;
 import java.io.FilePermission;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.net.URL;
@@ -229,10 +231,18 @@ public class JavaTaskBuilder {
 	private void configureClasspath() {
 		String classpath = "";
 		for (URL url : realm.getConstituents()) {
-			if ("".equals(classpath)) {
-				classpath += url.getFile();
-			} else {
-				classpath += System.getProperty("path.separator") + url.getFile();
+			try {
+				if ("".equals(classpath)) {
+					classpath += new File(url.getFile()).getCanonicalPath();
+				} else {
+					classpath += System.getProperty("path.separator") + new File(url.getFile()).getCanonicalPath();
+				}
+			} catch (IOException e) {
+				if ("".equals(classpath)) {
+					classpath += url.getFile();
+				} else {
+					classpath += System.getProperty("path.separator") + url.getFile();
+				}
 			}
 		}
 		javaTask.setClasspath(new Path(antProject, classpath));
