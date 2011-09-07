@@ -291,6 +291,8 @@ public class WorkflowMojo extends AbstractMojo {
 	private ClassRealm workflowRealm;
 
 	private Java javaTask;
+	
+	private MavenLogOutputStream mavenLogOutputStream;
 
 	/*
 	 * (non-Javadoc)
@@ -403,6 +405,10 @@ public class WorkflowMojo extends AbstractMojo {
 					javaTask.createPermissions().setSecurityManager();
 				}
 				success = wfr.run();
+				// look if the log stream detected errors
+				if (success && mavenLogOutputStream != null) {
+					success = !mavenLogOutputStream.hasErrors();
+				}
 				if (success) {
 					createTimeStampFile();
 					getLog().info("Workflow '" + workflowDescriptor + "' finished.");
@@ -643,9 +649,9 @@ public class WorkflowMojo extends AbstractMojo {
 
 	private void initJavaTask(MojoWorkflowRunner wfr) {
 		JavaTaskBuilder builder = new JavaTaskBuilder(project, workflowRealm);
-		final MavenLogOutputStream os = new MavenLogOutputStream(getLog());
+		mavenLogOutputStream = new MavenLogOutputStream(getLog());
 
-		javaTask = builder.withJvmSettings(jvmSettings).failOnError(true).withInputString("y\n").withOutputStream(os)
+		javaTask = builder.withJvmSettings(jvmSettings).failOnError(true).withInputString("y\n").withOutputStream(mavenLogOutputStream)
 				.withSecuritySettings(securitySettings).withWorkflow(workflowDescriptor).withProperties(properties)
 				.withProgressMonitorClass(progressMonitorClass).withWorkflowLauncherClass(workflowRunnerClass).build();
 

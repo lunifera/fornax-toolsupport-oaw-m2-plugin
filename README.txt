@@ -5,12 +5,12 @@ How to release
 Create SourceForge Shell
 http://sourceforge.net/apps/trac/sourceforge/wiki/Shell%20service
 
-ssh -t USER,fornax@shell.sourceforge.net create
+ssh -t USER,fornax@shell.sf.net create
 
 2)
 mvn -PRELEASE release:prepare
 3)
-mvn -PRELEASE release:perform
+mvn -PRELEASE release:perform -Dsfuser=<sourceforgeuser>
 4)
 mvn release:clean
 
