@@ -636,9 +636,8 @@ public class WorkflowMojo extends AbstractMojo {
 		if (workspaceStateProps==null)
 			return artifact.getFile().toURL();
 
-		final StringBuilder key = new StringBuilder()
-			.append(artifact.getGroupId()).append(':').append(artifact.getArtifactId()).append(':')
-			.append(artifact.getType()).append(':').append(artifact.getVersion());
+		final StringBuilder key = new StringBuilder().append(artifact.getGroupId()).append(':').append(artifact.getArtifactId())
+				.append(':').append(artifact.getType()).append(':').append(artifact.getBaseVersion());
 		String mappedPath = workspaceStateProps.getProperty(key.toString());
 		if (mappedPath != null) {
 			return new URL("file:"+mappedPath);
