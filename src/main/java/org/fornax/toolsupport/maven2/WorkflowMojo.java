@@ -14,8 +14,10 @@
  */
 package org.fornax.toolsupport.maven2;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -63,7 +65,7 @@ import org.codehaus.plexus.util.FileUtils;
  * @author Karsten Thoms <karsten.thoms@itemis.de>
  */
 public class WorkflowMojo extends AbstractMojo {
-	private static final String MOJO_VERSION = "3.3.2-SNAPSHOT";
+	private static final String MOJO_VERSION = "3.4.0-SNAPSHOT";
 	public static final String WFENGINE_OAW = "oaw";
 	public static final String WFENGINE_MWE = "mwe";
 	public static final String WFENGINE_MWE2 = "mwe2";
@@ -220,6 +222,15 @@ public class WorkflowMojo extends AbstractMojo {
 	 * @parameter
 	 */
 	private FileSet[] checkFilesets;
+	/**
+	 * A <code>java.util.List</code> with files containing a list of files that will be checked on up to date. 
+	 * If all resources are uptodate the plugin
+	 * stopps the execution, because there are nothing newer to regenerate. <br/>
+	 * The entries of this list can be relative path to the project root or absolute path.
+	 *
+	 * @parameter
+	 */
+	private List<String> checkFileListing;
 
 	/**
 	 * @parameter default-value="oaw-generation-lastrun.timestamp"
@@ -513,7 +524,29 @@ public class WorkflowMojo extends AbstractMojo {
 				getLog().warn(e);
 			}
 		}
+		// Read files that list files to check in lines
+		if (checkFileListing != null) {
+			for (String fileListing : checkFileListing) {
+				File f = new File(fileListing);
+				if (f.exists() && f.isFile()) {
+					try {
+						BufferedReader reader = new BufferedReader(new FileReader(f));
+						String line = reader.readLine();
+						while (line != null) {
+							File fileToCheck = new File(line.trim());
+							if (fileToCheck.exists() && fileToCheck.isFile()) {
+								filesToCheck.add(fileToCheck);
+							}
+							line = reader.readLine();
+						}
+					} catch (IOException e) {
+						getLog().warn(e);
+					}
+				}
+			}
+		}
 
+		
 		if (getLog().isDebugEnabled()) {
 			getLog().debug("Generator timestamp: " + df.format(new Date(timeStampFile.lastModified())));
 		}
@@ -636,8 +669,11 @@ public class WorkflowMojo extends AbstractMojo {
 		if (workspaceStateProps==null)
 			return artifact.getFile().toURL();
 
-		final StringBuilder key = new StringBuilder().append(artifact.getGroupId()).append(':').append(artifact.getArtifactId())
-				.append(':').append(artifact.getType()).append(':').append(artifact.getBaseVersion());
+		final StringBuilder key = new StringBuilder()
+			.append(artifact.getGroupId()).append(':').append(artifact.getArtifactId()).append(':')
+			.append(artifact.getType()).append(':').append(artifact.getVersion());
+//		final StringBuilder key = new StringBuilder().append(artifact.getGroupId()).append(':').append(artifact.getArtifactId())
+//				.append(':').append(artifact.getType()).append(':').append(artifact.getBaseVersion());
 		String mappedPath = workspaceStateProps.getProperty(key.toString());
 		if (mappedPath != null) {
 			return new URL("file:"+mappedPath);
