@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -48,9 +49,6 @@ import org.codehaus.classworlds.ClassRealm;
 import org.codehaus.classworlds.ClassWorld;
 import org.codehaus.classworlds.DuplicateRealmException;
 import org.codehaus.plexus.util.FileUtils;
-
-import com.google.inject.internal.Iterables;
-import com.google.inject.internal.Lists;
 
 /**
  * This is the plugin to the openArchitectureWare/Eclipse MWE Workflow-component. This plugin can used to generate artifacts out
@@ -85,7 +83,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * The project itself. This parameter is set by maven.
-	 * 
+	 *
 	 * @parameter expression="${project}"
 	 * @required
 	 */
@@ -232,13 +230,14 @@ public class WorkflowMojo extends AbstractMojo {
 	 */
 	private FileSet[] checkFilesets;
 	/**
-	 * A <code>java.util.List</code> with files containing a list of files that will be checked on up to date. If all resources
-	 * are uptodate the plugin stopps the execution, because there are nothing newer to regenerate. <br/>
+	 * A <code>java.util.List</code> with files containing a list of files that will be checked on up to date. 
+	 * If all resources are uptodate the plugin
+	 * stopps the execution, because there are nothing newer to regenerate. <br/>
 	 * The entries of this list can be relative path to the project root or absolute path.
 	 *
 	 * @parameter
 	 */
-	private List<String> checkFileListing;
+	private List<String> checkFileListings;
 
 	/**
 	 * @parameter default-value="oaw-generation-lastrun.timestamp"
@@ -541,15 +540,22 @@ public class WorkflowMojo extends AbstractMojo {
 			}
 		}
 		// Read files that list files to check in lines
-		if (checkFileListing != null) {
-			for (String fileListing : checkFileListing) {
+		if (checkFileListings != null) {
+			for (String fileListing : checkFileListings) {
 				File f = new File(fileListing);
 				if (f.exists() && f.isFile()) {
 					try {
 						BufferedReader reader = new BufferedReader(new FileReader(f));
 						String line = reader.readLine();
 						while (line != null) {
-							File fileToCheck = new File(line.trim());
+							String fileLocation = line.trim();
+							try {
+								URI fUri = new URI(line.trim());
+								fileLocation = fUri.getRawPath();
+							} catch (java.net.URISyntaxException e) {
+								getLog().warn(e);
+							}
+							File fileToCheck = new File(fileLocation);
 							if (fileToCheck.exists() && fileToCheck.isFile()) {
 								filesToCheck.add(fileToCheck);
 							}
@@ -597,7 +603,7 @@ public class WorkflowMojo extends AbstractMojo {
 						df.format(new Date(timeStampFile.lastModified())));
 				getLog().info(message);
 			} else {
-				this.getLog().info("Everything is up to date. No generation is needed.");
+				this.getLog().info("Everything is up to date. No generation is needed yuppi.");
 			}
 		}
 
@@ -644,14 +650,13 @@ public class WorkflowMojo extends AbstractMojo {
 		}
 
 		Properties workspaceStateProps = null;
-		if (System.getProperty(M2ECLIPSE_WORKSPACE_STATE) != null) {
+		if (System.getProperty(M2ECLIPSE_WORKSPACE_STATE)!=null) {
 			getLog().info("Using M2Eclipse workspace artifacts resolution");
 			File f = new File(System.getProperty(M2ECLIPSE_WORKSPACE_STATE));
 			if (!f.exists()) {
 				// workaround for https://bugs.eclipse.org/bugs/show_bug.cgi?id=341045
 				// TODO: Remove when bug is fixed
-				f = new File(System.getProperty(M2ECLIPSE_WORKSPACE_STATE).replace("org.eclipse.m2e.core",
-						"org.maven.ide.eclipse"));
+				f = new File(System.getProperty(M2ECLIPSE_WORKSPACE_STATE).replace("org.eclipse.m2e.core", "org.maven.ide.eclipse"));
 			}
 			if (f.exists()) {
 				workspaceStateProps = new Properties();
@@ -664,7 +669,8 @@ public class WorkflowMojo extends AbstractMojo {
 				getLog().warn("Could not find workspace state file. Disabling workspace resolution.");
 			}
 		}
-		final List<Artifact> artifacts = Lists.newArrayList(Iterables.concat(dependencies, pluginArtifacts));
+		final List<Artifact> artifacts = new ArrayList<Artifact>(dependencies);
+		artifacts.addAll(pluginArtifacts);
 		for (Artifact artifact : artifacts) {
 			try {
 				// only add archives, for non-archives an exception is thrown
@@ -714,7 +720,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * Converts the given path to an url
-	 * 
+	 *
 	 * @param path
 	 *            The path to convert
 	 * @return The converted <code>java.net.URL</code>
