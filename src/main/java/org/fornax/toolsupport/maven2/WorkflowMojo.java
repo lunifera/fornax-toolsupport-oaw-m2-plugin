@@ -49,6 +49,9 @@ import org.codehaus.classworlds.ClassWorld;
 import org.codehaus.classworlds.DuplicateRealmException;
 import org.codehaus.plexus.util.FileUtils;
 
+import com.google.inject.internal.Iterables;
+import com.google.inject.internal.Lists;
+
 /**
  * This is the plugin to the openArchitectureWare/Eclipse MWE Workflow-component. This plugin can used to generate artifacts out
  * of models (e.g. UML, EMF).
@@ -82,7 +85,7 @@ public class WorkflowMojo extends AbstractMojo {
 
 	/**
 	 * The project itself. This parameter is set by maven.
-	 *
+	 * 
 	 * @parameter expression="${project}"
 	 * @required
 	 */
@@ -94,6 +97,12 @@ public class WorkflowMojo extends AbstractMojo {
 	 * @readonly
 	 */
 	private Set<Artifact> dependencies;
+
+	/**
+	 * @parameter default-value="${plugin.artifacts}"
+	 * @required
+	 * */
+	private java.util.List<Artifact> pluginArtifacts;
 
 	/**
 	 * The name of the workflow descriptor.
@@ -223,9 +232,8 @@ public class WorkflowMojo extends AbstractMojo {
 	 */
 	private FileSet[] checkFilesets;
 	/**
-	 * A <code>java.util.List</code> with files containing a list of files that will be checked on up to date. 
-	 * If all resources are uptodate the plugin
-	 * stopps the execution, because there are nothing newer to regenerate. <br/>
+	 * A <code>java.util.List</code> with files containing a list of files that will be checked on up to date. If all resources
+	 * are uptodate the plugin stopps the execution, because there are nothing newer to regenerate. <br/>
 	 * The entries of this list can be relative path to the project root or absolute path.
 	 *
 	 * @parameter
@@ -296,6 +304,14 @@ public class WorkflowMojo extends AbstractMojo {
 	 * @parameter
 	 */
 	private SecuritySettings securitySettings;
+	
+//	/**
+//	 * A regular expression which is used to detect error situations from the stdout
+//	 * when running in forked mode. 
+//	 * @since 3.4.0
+//	 * @parameter
+//	 */
+//	private String errorDetectionPattern = ".*\\[main\\] ERROR (.*)";
 
 	private boolean isDefaultOawResourceDirManaged = false;
 
@@ -628,13 +644,14 @@ public class WorkflowMojo extends AbstractMojo {
 		}
 
 		Properties workspaceStateProps = null;
-		if (System.getProperty(M2ECLIPSE_WORKSPACE_STATE)!=null) {
+		if (System.getProperty(M2ECLIPSE_WORKSPACE_STATE) != null) {
 			getLog().info("Using M2Eclipse workspace artifacts resolution");
 			File f = new File(System.getProperty(M2ECLIPSE_WORKSPACE_STATE));
 			if (!f.exists()) {
 				// workaround for https://bugs.eclipse.org/bugs/show_bug.cgi?id=341045
 				// TODO: Remove when bug is fixed
-				f = new File(System.getProperty(M2ECLIPSE_WORKSPACE_STATE).replace("org.eclipse.m2e.core", "org.maven.ide.eclipse"));
+				f = new File(System.getProperty(M2ECLIPSE_WORKSPACE_STATE).replace("org.eclipse.m2e.core",
+						"org.maven.ide.eclipse"));
 			}
 			if (f.exists()) {
 				workspaceStateProps = new Properties();
@@ -647,7 +664,8 @@ public class WorkflowMojo extends AbstractMojo {
 				getLog().warn("Could not find workspace state file. Disabling workspace resolution.");
 			}
 		}
-		for (Artifact artifact : dependencies) {
+		final List<Artifact> artifacts = Lists.newArrayList(Iterables.concat(dependencies, pluginArtifacts));
+		for (Artifact artifact : artifacts) {
 			try {
 				// only add archives, for non-archives an exception is thrown
 				new ZipFile(artifact.getFile());
@@ -665,18 +683,18 @@ public class WorkflowMojo extends AbstractMojo {
 		Thread.currentThread().setContextClassLoader(workflowRealm.getClassLoader());
 	}
 
-	private URL getArtifactURL (Artifact artifact, Properties workspaceStateProps) throws MalformedURLException {
-		if (workspaceStateProps==null)
+	private URL getArtifactURL(Artifact artifact, Properties workspaceStateProps) throws MalformedURLException {
+		if (workspaceStateProps == null)
 			return artifact.getFile().toURL();
 
-		final StringBuilder key = new StringBuilder()
-			.append(artifact.getGroupId()).append(':').append(artifact.getArtifactId()).append(':')
-			.append(artifact.getType()).append(':').append(artifact.getVersion());
-//		final StringBuilder key = new StringBuilder().append(artifact.getGroupId()).append(':').append(artifact.getArtifactId())
-//				.append(':').append(artifact.getType()).append(':').append(artifact.getBaseVersion());
+		final StringBuilder key = new StringBuilder().append(artifact.getGroupId()).append(':').append(artifact.getArtifactId())
+				.append(':').append(artifact.getType()).append(':').append(artifact.getVersion());
+		// final StringBuilder key = new
+		// StringBuilder().append(artifact.getGroupId()).append(':').append(artifact.getArtifactId())
+		// .append(':').append(artifact.getType()).append(':').append(artifact.getBaseVersion());
 		String mappedPath = workspaceStateProps.getProperty(key.toString());
 		if (mappedPath != null) {
-			return new URL("file:"+mappedPath);
+			return new URL("file:" + mappedPath);
 		} else {
 			return artifact.getFile().toURL();
 		}
@@ -686,16 +704,17 @@ public class WorkflowMojo extends AbstractMojo {
 		JavaTaskBuilder builder = new JavaTaskBuilder(project, workflowRealm);
 		mavenLogOutputStream = new MavenLogOutputStream(getLog());
 
-		javaTask = builder.withJvmSettings(jvmSettings).failOnError(true).withInputString("y\n").withOutputStream(mavenLogOutputStream)
-				.withSecuritySettings(securitySettings).withWorkflow(workflowDescriptor).withProperties(properties)
-				.withProgressMonitorClass(progressMonitorClass).withWorkflowLauncherClass(workflowRunnerClass).build();
+		javaTask = builder.withJvmSettings(jvmSettings).failOnError(true).withInputString("y\n")
+				.withOutputStream(mavenLogOutputStream).withSecuritySettings(securitySettings).withWorkflow(workflowDescriptor)
+				.withProperties(properties).withProgressMonitorClass(progressMonitorClass)
+				.withWorkflowLauncherClass(workflowRunnerClass).build();
 
 		wfr.setJavaTask(javaTask);
 	}
 
 	/**
 	 * Converts the given path to an url
-	 *
+	 * 
 	 * @param path
 	 *            The path to convert
 	 * @return The converted <code>java.net.URL</code>
