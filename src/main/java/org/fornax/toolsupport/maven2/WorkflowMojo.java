@@ -1,5 +1,5 @@
 /*
- *	Copyright 2006-2010 The Fornax Project Team
+ *	Copyright 2006-2011 The Fornax Project Team
  *	Licensed under the Apache License, Version 2.0 (the "License");
  *	you may not use this file except in compliance with the License.
  * 	You may obtain a copy of the License at
@@ -230,14 +230,25 @@ public class WorkflowMojo extends AbstractMojo {
 	 */
 	private FileSet[] checkFilesets;
 	/**
-	 * A <code>java.util.List</code> with files containing a list of files that will be checked on up to date. 
+	 * A <code>java.util.List</code> with files containing a list of files that will be checked on up to date.
 	 * If all resources are uptodate the plugin
 	 * stopps the execution, because there are nothing newer to regenerate. <br/>
 	 * The entries of this list can be relative path to the project root or absolute path.
 	 *
 	 * @parameter
+	 * @since 3.4.0
 	 */
 	private List<String> checkFileListings;
+
+	/**
+	 * If set the classpath constituents that can be resolved to files are checked
+	 * for changes against the timestamp file. Enable this if you need to regenerate in the
+	 * case that a snapshot dependency changes.
+	 *
+	 * @parameter
+	 * @since 3.4.0
+	 */
+	private boolean checkDependencies;
 
 	/**
 	 * @parameter default-value="oaw-generation-lastrun.timestamp"
@@ -303,10 +314,17 @@ public class WorkflowMojo extends AbstractMojo {
 	 * @parameter
 	 */
 	private SecuritySettings securitySettings;
-	
+
+	/**
+	 * Forces execution by configuration
+	 * @since 3.4.0
+	 * @parameter
+	 */
+	private boolean force;
+
 //	/**
 //	 * A regular expression which is used to detect error situations from the stdout
-//	 * when running in forked mode. 
+//	 * when running in forked mode.
 //	 * @since 3.4.0
 //	 * @parameter
 //	 */
@@ -317,7 +335,7 @@ public class WorkflowMojo extends AbstractMojo {
 	private ClassRealm workflowRealm;
 
 	private Java javaTask;
-	
+
 	private MavenLogOutputStream mavenLogOutputStream;
 
 	/*
@@ -344,13 +362,14 @@ public class WorkflowMojo extends AbstractMojo {
 			return;
 		}
 
-		if ("true".equalsIgnoreCase(System.getProperty("fornax.generator.force.execution"))) {
+		if (force || "true".equalsIgnoreCase(System.getProperty("fornax.generator.force.execution"))) {
 			getLog().info("Forced workflow execution");
 			File timeStampFile = getTimeStampFile();
 			if (timeStampFile != null) {
 				timeStampFile.delete();
 			}
 		}
+		populateWorkflowRealm();
 		Set<String> changedFiles = changedFiles();
 		if (changedFiles == null || !changedFiles.isEmpty()) {
 			addChangedFilesToSystemProperties(changedFiles);
@@ -568,7 +587,18 @@ public class WorkflowMojo extends AbstractMojo {
 			}
 		}
 
-		
+		// if checkDependencies is set, track the Jar files on the classpath
+		if (checkDependencies) {
+			for (URL url: workflowRealm.getConstituents()) {
+				if (url.getFile()!=null) {
+					final File constituent = new File(url.getFile());
+					if (constituent.exists()&&constituent.isFile()&&constituent.canRead()&&constituent.getName().endsWith(".jar")) {
+						filesToCheck.add(constituent);
+					}
+				}
+			}
+		}
+
 		if (getLog().isDebugEnabled()) {
 			getLog().debug("Generator timestamp: " + df.format(new Date(timeStampFile.lastModified())));
 		}
@@ -603,7 +633,7 @@ public class WorkflowMojo extends AbstractMojo {
 						df.format(new Date(timeStampFile.lastModified())));
 				getLog().info(message);
 			} else {
-				this.getLog().info("Everything is up to date. No generation is needed yuppi.");
+				this.getLog().info("Everything is up to date. No generation is needed.");
 			}
 		}
 
@@ -611,12 +641,13 @@ public class WorkflowMojo extends AbstractMojo {
 	}
 
 	/**
-	 * Extends the current classloader with all resource path and the given additional ClassLoaderURLs.
+	 * Populates the workflow's classpath realm with
+	 * - the project's resource directories
+	 * - dependencies
+	 * - plugin dependencies
 	 *
-	 * @param wfr
-	 *            The current classloader to extend
 	 */
-	private void extendCurrentClassloader(MojoWorkflowRunner wfr) {
+	private void populateWorkflowRealm() {
 		final List<?> resources = project.getBuild().getResources();
 		// http://blogs.webtide.com/janb/entry/extending_the_maven_plugin_classpath
 		// create a new classloading space
@@ -685,7 +716,15 @@ public class WorkflowMojo extends AbstractMojo {
 			} catch (IOException e) {
 			}
 		}
-		// make the child realm the ContextClassLoader
+	}
+
+	/**
+	 * Extends the current classloader with all resource path and the given additional ClassLoaderURLs.
+	 *
+	 * @param wfr
+	 *            The current classloader to extend
+	 */
+	private void extendCurrentClassloader(MojoWorkflowRunner wfr) {
 		Thread.currentThread().setContextClassLoader(workflowRealm.getClassLoader());
 	}
 
