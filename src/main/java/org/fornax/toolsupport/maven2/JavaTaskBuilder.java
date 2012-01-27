@@ -42,7 +42,7 @@ import org.codehaus.classworlds.ClassRealm;
 
 /**
  * Creates an {@link Java Ant Java task} that executes the workflow.
- * 
+ *
  * @author Karsten Thoms
  * @since 3.2.0
  */
@@ -204,7 +204,7 @@ public class JavaTaskBuilder {
 				// javaTask.createArg() would append the parameter at the beginning before the classname
 				// but it must be appended at the end.
 				Commandline.Argument newArg = javaTask.getCommandLine().getJavaCommand().createArgument(false);
-				newArg.setLine("-p" + key + "=" + properties.get(key));
+				newArg.setLine("-p " + key + "=" + properties.get(key));
 			}
 		}
 		return this;
@@ -223,7 +223,7 @@ public class JavaTaskBuilder {
 	public JavaTaskBuilder withProgressMonitorClass(String progressMonitorClass) {
 		if (progressMonitorClass != null) {
 			Commandline.Argument newArg = javaTask.getCommandLine().getJavaCommand().createArgument(false);
-			newArg.setLine("-m" + progressMonitorClass);
+			newArg.setLine("-m " + progressMonitorClass);
 		}
 		return this;
 	}

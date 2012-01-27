@@ -402,13 +402,13 @@ public class WorkflowMojo extends AbstractMojo {
 			System.setProperty("user.dir", project.getBasedir().getPath() + System.getProperty("file.separator") + ".");
 
 			// Initialize MojoWorkflowRunner
-			// if (progressMonitorClass == null) {
-			// if (WFENGINE_OAW.equals(workflowEngine)) {
-			// progressMonitorClass = OAW_PROGRESSMONITOR;
-			// } else if (WFENGINE_MWE.equals(workflowEngine)) {
-			// progressMonitorClass = MWE_PROGRESSMONITOR;
-			// }
-			// }
+//			if (progressMonitorClass == null) {
+//				if (WFENGINE_OAW.equals(workflowEngine)) {
+//					progressMonitorClass = OAW_PROGRESSMONITOR;
+//				} else if (WFENGINE_MWE.equals(workflowEngine)) {
+//					progressMonitorClass = MWE_PROGRESSMONITOR;
+//				}
+//			}
 
 			if (workflowRunnerClass == null) {
 				if (WFENGINE_OAW.equals(workflowEngine)) {
@@ -440,7 +440,7 @@ public class WorkflowMojo extends AbstractMojo {
 				}
 			}
 
-			initJavaTask(wfr);
+			initJavaTask(wfr, params);
 
 			// ////////////////////////////////////////////////////////////////
 			// Execute the workflow
@@ -745,13 +745,13 @@ public class WorkflowMojo extends AbstractMojo {
 		}
 	}
 
-	private void initJavaTask(MojoWorkflowRunner wfr) {
+	private void initJavaTask(MojoWorkflowRunner wfr, Map<String, String> params) {
 		JavaTaskBuilder builder = new JavaTaskBuilder(project, workflowRealm);
 		mavenLogOutputStream = new MavenLogOutputStream(getLog());
 
 		javaTask = builder.withJvmSettings(jvmSettings).failOnError(true).withInputString("y\n")
 				.withOutputStream(mavenLogOutputStream).withSecuritySettings(securitySettings).withWorkflow(workflowDescriptor)
-				.withProperties(properties).withProgressMonitorClass(progressMonitorClass)
+				.withProperties(params).withProgressMonitorClass(progressMonitorClass)
 				.withWorkflowLauncherClass(workflowRunnerClass).build();
 
 		wfr.setJavaTask(javaTask);
@@ -897,6 +897,7 @@ public class WorkflowMojo extends AbstractMojo {
 	 */
 	private File getWorkflowDescriptorRoot() {
 
+		getLog().debug("oaw default resource dir: " + defaultOawResourceDir);
 		for (int i = 0; i < project.getBuild().getResources().size(); i++) {
 			Resource resource = (Resource) project.getBuild().getResources().get(i);
 			if (resource.getDirectory().equalsIgnoreCase(defaultOawResourceDir)) {
@@ -907,6 +908,7 @@ public class WorkflowMojo extends AbstractMojo {
 		if (!isDefaultOawResourceDirManaged) {
 			Resource oawDefaultResource = new Resource();
 			oawDefaultResource.setDirectory(defaultOawResourceDir);
+			getLog().debug("adding oaw default resource dir " + oawDefaultResource.getDirectory());
 			project.getBuild().addResource(oawDefaultResource);
 		}
 
