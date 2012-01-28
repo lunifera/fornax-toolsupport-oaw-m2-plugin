@@ -28,7 +28,6 @@
 <!--           <progressMonitorClass>org.fornax.toolsupport.maven2.SystemOutProgressMonitor</progressMonitorClass> -->
           <!-- <outletResDir>${project.build.directory}/generated-resources/fornax-workflow</outletResDir> -->
           <defaultOawResourceDir>${basedir}/src/test/projects/mocktest/oaw-generator</defaultOawResourceDir>
-          <force>true</force>
           <checkFilesets>
             <checkFileset>
               <directory>${basedir}/src/test/projects/mocktest/oaw-generator</directory>

@@ -13,17 +13,20 @@ import org.powermock.modules.junit3.PowerMockSuite;
  */
 public class WorkflowTestSuite extends PowerMockSuite {
 
-	public WorkflowTestSuite(Class<? extends TestCase>[] testCases) throws Exception {
+	public WorkflowTestSuite(Class<? extends TestCase>... testCases) throws Exception {
 		super(testCases);
 	}
 
-	public static TestSuite suite() throws Exception {
+	public WorkflowTestSuite(String name, Class<? extends TestCase>... testCases) throws Exception {
+		super(name, testCases);
+	}
 
-		return new PowerMockSuite(WorkflowSuiteComponent.class);
+	@SuppressWarnings("unchecked")
+	public static TestSuite suite() throws Exception {
+		return new WorkflowTestSuite(WorkflowSuiteComponent.class);
 	}
 
 	public static void main(String[] args) throws Exception {
-
 		junit.textui.TestRunner.run(suite());
 	}
 
