@@ -2,6 +2,7 @@ package org.fornax.toolsupport.maven2;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -82,16 +83,22 @@ public class WorkflowSuiteComponent extends AbstractMojoTestCase {
 
 	public void testForceExecution() throws Exception {
 		setupMojo(pomOaw);
+		File timestampFile = createTimestampFile();
+		long existingTimestamp = timestampFile.lastModified();
 		System.setProperty("fornax.generator.force.execution", "true");
 		mojo.execute();
 		verify(mockProject).executeTarget("run-workflow");
+		assertThat(timestampFile.lastModified(), greaterThan(existingTimestamp));
 	}
 
-	public void testForce() throws Exception {
+	public void testForceParameter() throws Exception {
 		setupMojo(pomOaw);
+		File timestampFile = createTimestampFile();
+		long existingTimestamp = timestampFile.lastModified();
 		setVariableValueToObject(mojo, "force", true);
 		mojo.execute();
 		verify(mockProject).executeTarget("run-workflow");
+		assertThat(timestampFile.lastModified(), greaterThan(existingTimestamp));
 	}
 
 	private void setupMojo(String pathToPom) throws IOException, ArtifactResolutionException, ArtifactNotFoundException,
@@ -130,6 +137,12 @@ public class WorkflowSuiteComponent extends AbstractMojoTestCase {
 		for (Outlet outlet : Outlet.values()) {
 			setVariableValueToObject(mojo, outlet.propertyName, outlet.defaultDir);
 		}
+	}
+
+	private File createTimestampFile() throws IOException {
+		File timestampFile = new File(project.getBuild().getDirectory(), "oaw-generation-lastrun.timestamp");
+		timestampFile.createNewFile();
+		return timestampFile;
 	}
 
 }
