@@ -14,9 +14,9 @@
  */
 package org.fornax.toolsupport.maven2;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.maven.plugin.logging.Log;
 import org.apache.tools.ant.util.LineOrientedOutputStream;
@@ -27,74 +27,81 @@ import org.apache.tools.ant.util.LineOrientedOutputStream;
  * @since 3.1.0
  */
 public class MavenLogOutputStream extends LineOrientedOutputStream {
-	private static final Pattern LOGPATTERN = Pattern.compile(".*\\[main\\] (\\w+) (.*)");
-	private static final String DEBUG = "DEBUG";
-	private static final String INFO = "INFO";
-	private static final String WARN = "WARN";
-	private static final String ERROR = "ERROR";
 	private Log log;
-	private String lastLevel;
+	private int lastLevel;
 	private boolean hasErrors;
+	private List<List<LogDetectionPattern>> logDetectionPatterns;
 	
 	public MavenLogOutputStream (Log log) {
 		this.log = log;
-		this.lastLevel = INFO;
+		this.lastLevel = LogDetectionPattern.INFO;
+		// Initialize the list of lists. The outer list has an element for each level,
+		// the inner list will take the LogDetectionPatterns for that level
+		logDetectionPatterns = new ArrayList<List<LogDetectionPattern>>(4);
+		for (int i=0; i<4; i++) {
+			logDetectionPatterns.add(new ArrayList<LogDetectionPattern>(1));
+		}
+	}
+	
+	public void setLogDetectionPatterns(
+			LogDetectionPattern[] ldps) {
+		for (LogDetectionPattern ldp: ldps) {
+			getLogDetectionPatterns(ldp.getLevel()).add(ldp);
+		}
 	}
 	
 	@Override
-	protected void processLine(String line) throws IOException {
+	protected void processLine(String line) {
 		boolean matched = false;
-		String level = null;
-		String message = null;
-		if (line.indexOf(DEBUG)>=0) {
-			level = DEBUG;
-			message = line;
-			matched = true;
-		} 
-		else if (line.indexOf(INFO)>=0) {
-			level = INFO;
-			message = line;
-			matched = true;
-		} 
-		else if (line.indexOf(WARN)>=0) {
-			level = WARN;
-			message = line;
-			matched = true;
-		} 
-		else if (line.indexOf(ERROR)>=0) {
-			level = ERROR;
-			message = line;
-			matched = true;
-		} 
-		else {
-			Matcher m = LOGPATTERN.matcher(line);
-			if (m.matches()) {
-				level = m.group(1);
-				message = m.group(2);
-				matched = true;
+		int level = lastLevel;
+		boolean multiline = true;
+		String message = line;
+		for (int i=LogDetectionPattern.ERROR; !matched && i>=0; i--) {
+			for (LogDetectionPattern ldp: getLogDetectionPatterns(i)) {
+				if (ldp.isRegexp()) {
+					Matcher m = ldp.getDetectionPattern().matcher(line);
+					if (m.find()) {
+						level = ldp.getLevel();
+						// remember the level
+						lastLevel = level;
+						if (m.groupCount()>0) {
+							message = m.group(1);
+						}
+						matched = true;
+						multiline = ldp.isMultiline();
+						break;
+					}
+				} else {
+					if (line.contains(ldp.getDetectionString())) {
+						level = ldp.getLevel();
+						// remember the level
+						lastLevel = level;
+						matched = true;
+						multiline = ldp.isMultiline();
+						break;
+					}
+				}
 			}
 		}
-		if (!matched) {
-			level = lastLevel; // to get stack traces after ERROR
-			message = line;
+		switch (level) {
+			case LogDetectionPattern.DEBUG: log.debug(message); break;
+			case LogDetectionPattern.INFO: log.info(message); break;
+			case LogDetectionPattern.WARNING: log.warn(message); break;
+			case LogDetectionPattern.ERROR: log.error(message); hasErrors = true; break;
+			default: log.info(message); break;
 		}
-		if (DEBUG.equals(level)) {
-			log.debug(message);
-		} else if (INFO.equals(level)) {
-			log.info(message);
-		} else if (WARN.equals(level)) {
-			log.warn(message);
-		} else if (ERROR.equals(level)) {
-			log.error(message);
-			hasErrors = true;
-		} else {
-			log.info(message);
+		if (!multiline) {
+			// reset last level
+			lastLevel = LogDetectionPattern.INFO;
 		}
-		lastLevel = level;
 	}
 	
 	public boolean hasErrors () {
 		return hasErrors;
+	}
+	
+	protected List<LogDetectionPattern> getLogDetectionPatterns (Integer level) {
+		return logDetectionPatterns.get(level);
 	}
 
 }

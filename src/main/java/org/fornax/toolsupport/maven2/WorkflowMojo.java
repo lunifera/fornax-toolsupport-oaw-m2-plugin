@@ -14,6 +14,8 @@
  */
 package org.fornax.toolsupport.maven2;
 
+import static org.fornax.toolsupport.maven2.LogDetectionPattern.ERROR;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -330,13 +332,13 @@ public class WorkflowMojo extends AbstractMojo {
 	 */
 	private boolean skip;
 
-//	/**
-//	 * A regular expression which is used to detect error situations from the stdout
-//	 * when running in forked mode.
-//	 * @since 3.4.0
-//	 * @parameter
-//	 */
-//	private String errorDetectionPattern = ".*\\[main\\] ERROR (.*)";
+	/**
+	 * Used to detect log levels and especially error situations from the stdout
+	 * when running in forked mode.
+	 * @since 3.4.0
+	 * @parameter
+	 */
+	private LogDetectionPattern[] logDetectionPatterns;
 
 	private boolean isDefaultOawResourceDirManaged = false;
 
@@ -755,7 +757,14 @@ public class WorkflowMojo extends AbstractMojo {
 	private void initJavaTask(MojoWorkflowRunner wfr, Map<String, String> params) {
 		JavaTaskBuilder builder = new JavaTaskBuilder(project, workflowRealm);
 		mavenLogOutputStream = new MavenLogOutputStream(getLog());
-
+		if (logDetectionPatterns!=null) {
+			mavenLogOutputStream.setLogDetectionPatterns(logDetectionPatterns);
+		} else {
+			// standard ERROR and STACKTRACE detection
+			LogDetectionPattern ldp = new LogDetectionPattern(ERROR, "ERROR", false, false);
+			LogDetectionPattern ldp2 = new LogDetectionPattern(ERROR, "^\\s+at .*", true, false);
+			mavenLogOutputStream.setLogDetectionPatterns(new LogDetectionPattern[]{ldp,ldp2});
+		}
 		javaTask = builder.withJvmSettings(jvmSettings).failOnError(true).withInputString("y\n")
 				.withOutputStream(mavenLogOutputStream).withSecuritySettings(securitySettings).withWorkflow(workflowDescriptor)
 				.withProperties(params).withProgressMonitorClass(progressMonitorClass)
