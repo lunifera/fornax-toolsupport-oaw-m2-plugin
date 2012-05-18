@@ -76,29 +76,61 @@ public class WorkflowSuiteComponent extends AbstractMojoTestCase {
 
 	public void testOmitExecution() throws Exception {
 		setupMojo(pomOaw);
-		System.setProperty("fornax.generator.omit.execution", "true");
+		System.setProperty(WorkflowMojo.PROPERTY_OMIT_EXECUTION, "true");
 		mojo.execute();
 		verify(mockProject, never()).executeTarget("run-workflow");
 	}
 
-	public void testForceExecution() throws Exception {
+	/**
+	 * Tests that execution is forced by setting system property <code>fornax.generator.force.execution</code>.
+	 */
+	public void testForceSystemProperty() throws Exception {
 		setupMojo(pomOaw);
-		File timestampFile = createTimestampFile();
+		// enforce creation of an "existing" timestamp file
+		long existingTimestamp = mojo.createTimestampFile().lastModified();
+		// need to wait longer than 1s to have a difference between the created file and the one created by the Mojo
+		Thread.sleep(1050);
+		System.setProperty(WorkflowMojo.PROPERTY_FORCE_EXECUTION, "true");
+		mojo.execute();
+		verify(mockProject).executeTarget("run-workflow");
+		assertThat(mojo.getTimestampFile().lastModified(), greaterThan(existingTimestamp));
+	}
+
+	/**
+	 * Tests that execution is forced by setting the <code>force</code> configuration parameter.
+	 */
+	public void testForceParameter() throws Exception {
+		setupMojo(pomOaw);
+		File timestampFile = mojo.createTimestampFile();
 		long existingTimestamp = timestampFile.lastModified();
-		System.setProperty("fornax.generator.force.execution", "true");
+		// need to wait longer than 1s to have a difference between the created file and the one created by the Mojo
+		Thread.sleep(1050);
+		setVariableValueToObject(mojo, "force", true);
 		mojo.execute();
 		verify(mockProject).executeTarget("run-workflow");
 		assertThat(timestampFile.lastModified(), greaterThan(existingTimestamp));
 	}
 
-	public void testForceParameter() throws Exception {
+	/**
+	 * Tests that execution is skipped by setting system property <code>fornax.generator.omit.execution</code>.
+	 */
+	public void testOmitSystemProperty() throws Exception {
 		setupMojo(pomOaw);
-		File timestampFile = createTimestampFile();
-		long existingTimestamp = timestampFile.lastModified();
-		setVariableValueToObject(mojo, "force", true);
+		System.setProperty(WorkflowMojo.PROPERTY_OMIT_EXECUTION, "true");
 		mojo.execute();
-		verify(mockProject).executeTarget("run-workflow");
-		assertThat(timestampFile.lastModified(), greaterThan(existingTimestamp));
+		// the Ant target "run-workflow" must not have been called
+		verify(mockProject, never()).executeTarget("run-workflow");
+	}
+
+	/**
+	 * Tests that execution is skipped by setting the <code>skip</code> configuration parameter.
+	 */
+	public void testSkipParameter() throws Exception {
+		setupMojo(pomOaw);
+		setVariableValueToObject(mojo, "skip", true);
+		mojo.execute();
+		// the Ant target "run-workflow" must not have been called
+		verify(mockProject, never()).executeTarget("run-workflow");
 	}
 
 	private void setupMojo(String pathToPom) throws IOException, ArtifactResolutionException, ArtifactNotFoundException,
@@ -137,12 +169,6 @@ public class WorkflowSuiteComponent extends AbstractMojoTestCase {
 		for (Outlet outlet : Outlet.values()) {
 			setVariableValueToObject(mojo, outlet.propertyName, outlet.defaultDir);
 		}
-	}
-
-	private File createTimestampFile() throws IOException {
-		File timestampFile = new File(project.getBuild().getDirectory(), "oaw-generation-lastrun.timestamp");
-		timestampFile.createNewFile();
-		return timestampFile;
 	}
 
 }
