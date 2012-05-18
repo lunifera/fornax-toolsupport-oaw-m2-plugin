@@ -66,7 +66,9 @@ import org.codehaus.plexus.util.FileUtils;
  * @author Karsten Thoms <karsten.thoms@itemis.de>
  */
 public class WorkflowMojo extends AbstractMojo {
-	private static final String MOJO_VERSION = "3.4.0-SNAPSHOT";
+	public static final String PROPERTY_OMIT_EXECUTION = "fornax.generator.omit.execution";
+	public static final String PROPERTY_FORCE_EXECUTION = "fornax.generator.force.execution";
+	public static final String MOJO_VERSION = "3.4.0-SNAPSHOT";
 	public static final String WFENGINE_OAW = "oaw";
 	public static final String WFENGINE_MWE = "mwe";
 	public static final String WFENGINE_MWE2 = "mwe2";
@@ -321,6 +323,12 @@ public class WorkflowMojo extends AbstractMojo {
 	 * @parameter
 	 */
 	private boolean force;
+	/**
+	 * Skips execution by configuration
+	 * @since 3.4.0
+	 * @parameter
+	 */
+	private boolean skip;
 
 //	/**
 //	 * A regular expression which is used to detect error situations from the stdout
@@ -357,14 +365,14 @@ public class WorkflowMojo extends AbstractMojo {
 		wfr = new MojoWorkflowRunner();
 		wfr.setLog(getLog());
 
-		if ("true".equals(System.getProperty("fornax.generator.omit.execution"))) {
+		if (skip || "true".equals(System.getProperty(PROPERTY_OMIT_EXECUTION))) {
 			getLog().info("Omitting workflow execution.");
 			return;
 		}
 
-		if (force || "true".equalsIgnoreCase(System.getProperty("fornax.generator.force.execution"))) {
-			getLog().info("Forced workflow execution");
-			File timeStampFile = getTimeStampFile();
+		if (force || "true".equalsIgnoreCase(System.getProperty(PROPERTY_FORCE_EXECUTION))) {
+			getLog().info("Forced workflow execution.");
+			File timeStampFile = getTimestampFile();
 			if (timeStampFile != null) {
 				timeStampFile.delete();
 			}
@@ -455,7 +463,7 @@ public class WorkflowMojo extends AbstractMojo {
 					success = !mavenLogOutputStream.hasErrors();
 				}
 				if (success) {
-					createTimeStampFile();
+					createTimestampFile();
 					getLog().info("Workflow '" + workflowDescriptor + "' finished.");
 				} else {
 					throw new MojoExecutionException("Workflow execution failed.");
@@ -494,7 +502,6 @@ public class WorkflowMojo extends AbstractMojo {
 				}
 			}
 		}
-
 	}
 
 	private void addChangedFilesToSystemProperties(Set<String> changedFiles) {
@@ -515,11 +522,11 @@ public class WorkflowMojo extends AbstractMojo {
 	 * The file names in the checkFilesets that have been modified since previous generation. Empty if no files changed. null if
 	 * there is no timestamp file to compare against, i.e. always run the generator
 	 */
-	private Set<String> changedFiles() {
+	protected Set<String> changedFiles() {
 		Set<String> result = new HashSet<String>();
 		final SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd-HH:mm:ss");
 		File basedir = project.getBasedir();
-		File timeStampFile = getTimeStampFile();
+		File timeStampFile = getTimestampFile();
 
 		// If there is no timestamp file to compare against then always run the
 		// generator
@@ -863,31 +870,32 @@ public class WorkflowMojo extends AbstractMojo {
 	}
 
 	/**
-	 * Creates the TimeStampFile. This is used to check the state of the resources.
+	 * Creates the Timestamp file. This is used to check the state of the resources.
 	 */
-	private void createTimeStampFile() {
-		File timeStampFile = null;
+	protected File createTimestampFile() {
+		File timestampFile = null;
 
 		try {
-			timeStampFile = new File(project.getBuild().getDirectory(), timestampFileName);
-			timeStampFile.getParentFile().mkdirs();
-			if (timeStampFile.exists()) {
-				timeStampFile.delete();
+			timestampFile = new File(project.getBuild().getDirectory(), timestampFileName);
+			timestampFile.getParentFile().mkdirs();
+			if (timestampFile.exists()) {
+				timestampFile.delete();
 			}
-			timeStampFile.createNewFile();
+			timestampFile.createNewFile();
 		} catch (IOException e) {
 			getLog().warn("Could not create the timestamp file. Reason: " + e.getMessage());
 		}
+		return timestampFile;
 	}
 
 	/**
-	 * Returns the TimeStampFile or <code>null</code> if none exists.
+	 * Returns the timestamp file or <code>null</code> if none exists.
 	 */
-	private File getTimeStampFile() {
-		File timeStampFile = new File(project.getBuild().getDirectory(), timestampFileName);
+	protected File getTimestampFile() {
+		File timestampFile = new File(project.getBuild().getDirectory(), timestampFileName);
 
-		if (timeStampFile.exists()) {
-			return timeStampFile;
+		if (timestampFile.exists()) {
+			return timestampFile;
 		}
 		return null;
 	}
