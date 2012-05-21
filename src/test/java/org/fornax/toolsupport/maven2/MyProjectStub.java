@@ -2,7 +2,7 @@ package org.fornax.toolsupport.maven2;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -72,11 +72,6 @@ public class MyProjectStub extends MavenProjectStub {
 
 	}
 
-	/** {@inheritDoc} */
-	// public File getBasedir() {
-	// return new File(super.getBasedir() + "/src/test/resources/unit/project-to-test/");
-	// }
-
 	@Override
 	public List getResources() {
 		return getBuild().getResources();
@@ -89,18 +84,11 @@ public class MyProjectStub extends MavenProjectStub {
 
 	@Override
 	public Set getPluginArtifacts() {
-		return new HashSet();
+		return Collections.emptySet();
 	}
 
 	@Override
 	public List getTestResources() {
 		return getBuild().getTestResources();
 	}
-
-
-
-
-
-
-
 }

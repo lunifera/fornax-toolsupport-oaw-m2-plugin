@@ -357,7 +357,7 @@ public class WorkflowMojo extends AbstractMojo {
 		MojoWorkflowRunner wfr = null;
 		Map<String, String> params = new HashMap<String, String>();
 
-		final PluginDescriptor d = (PluginDescriptor) getPluginContext().get("pluginDescriptor");
+		final PluginDescriptor d = getPluginContext() != null ? (PluginDescriptor) getPluginContext().get("pluginDescriptor") : null;
 		final String version = d!=null ? " V"+d.getVersion() : "";
 		getLog().info("Fornax Model Workflow Maven2 Plugin" + version);
 
