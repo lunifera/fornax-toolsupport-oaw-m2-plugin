@@ -45,6 +45,7 @@ import org.apache.maven.model.FileSet;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.project.MavenProject;
 import org.apache.tools.ant.taskdefs.Java;
 import org.codehaus.classworlds.ClassRealm;
@@ -70,7 +71,6 @@ import org.codehaus.plexus.util.FileUtils;
 public class WorkflowMojo extends AbstractMojo {
 	public static final String PROPERTY_OMIT_EXECUTION = "fornax.generator.omit.execution";
 	public static final String PROPERTY_FORCE_EXECUTION = "fornax.generator.force.execution";
-	public static final String MOJO_VERSION = "3.4.0-SNAPSHOT";
 	public static final String WFENGINE_OAW = "oaw";
 	public static final String WFENGINE_MWE = "mwe";
 	public static final String WFENGINE_MWE2 = "mwe2";
@@ -357,7 +357,9 @@ public class WorkflowMojo extends AbstractMojo {
 		MojoWorkflowRunner wfr = null;
 		Map<String, String> params = new HashMap<String, String>();
 
-		getLog().info("Fornax Model Workflow Maven2 Plugin V" + MOJO_VERSION);
+		final PluginDescriptor d = (PluginDescriptor) getPluginContext().get("pluginDescriptor");
+		final String version = d!=null ? " V"+d.getVersion() : "";
+		getLog().info("Fornax Model Workflow Maven2 Plugin" + version);
 
 		// Check workflowEngine parameter
 		if (!WFENGINE_OAW.equals(workflowEngine) && !WFENGINE_MWE.equals(workflowEngine) && !WFENGINE_MWE2.equals(workflowEngine)) {
