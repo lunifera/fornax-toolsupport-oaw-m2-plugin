@@ -53,7 +53,7 @@ import org.codehaus.classworlds.DuplicateRealmException;
 import org.codehaus.plexus.util.FileUtils;
 
 /**
- * This is the plugin to the openArchitectureWare/Eclipse MWE Workflow-component. This plugin can used to generate artifacts out
+ * This is the plugin to the Eclipse MWE/openArchitectureWare Workflow-component. This plugin can used to generate artifacts out
  * of models (e.g. UML, EMF).
  * <p>
  * You can configure resources that should be checked if they are up to date to avoid needless generator runs and optimize build
@@ -63,7 +63,7 @@ import org.codehaus.plexus.util.FileUtils;
  * @phase generate-sources
  * @goal run-workflow
  * @requiresDependencyResolution test
- * @description Executes the Workflow-Engine from the openArchitectureWare Generator-Framework
+ * @description Executes a model workflow with Eclipse MWE/openArchitectureWare
  * @author Thorsten Kamann <thorsten.kamann@googlemail.com>
  * @author Karsten Thoms <karsten.thoms@itemis.de>
  */
@@ -449,6 +449,9 @@ public class WorkflowMojo extends AbstractMojo {
 					jvmSettings.setFork(true);
 				}
 			}
+			if (jvmSettings.isFork()) {
+				getLog().info("Executing workflow in forked mode.");
+			}
 
 			initJavaTask(wfr, params);
 
@@ -718,7 +721,7 @@ public class WorkflowMojo extends AbstractMojo {
 				final URL artifactUrl = getArtifactURL(artifact, workspaceStateProps);
 				workflowRealm.addConstituent(artifactUrl);
 				if (getLog().isDebugEnabled()) {
-					final boolean resolved = !artifact.getFile().toURL().equals(artifactUrl);
+					final boolean resolved = !artifact.getFile().toURI().toURL().equals(artifactUrl);
 					getLog().debug("Added dependency to classpath: " + artifactUrl + (resolved ? " (resolved from workspace)" : ""));
 				}
 			} catch (ZipException e) {
@@ -738,8 +741,9 @@ public class WorkflowMojo extends AbstractMojo {
 	}
 
 	private URL getArtifactURL(Artifact artifact, Properties workspaceStateProps) throws MalformedURLException {
+		// why use toURI().toURL(): http://www.jguru.com/faq/view.jsp?EID=1280051
 		if (workspaceStateProps == null)
-			return artifact.getFile().toURL();
+			return artifact.getFile().toURI().toURL();
 
 		final StringBuilder key = new StringBuilder().append(artifact.getGroupId()).append(':').append(artifact.getArtifactId())
 				.append(':').append(artifact.getType()).append(':').append(artifact.getVersion());
@@ -750,7 +754,7 @@ public class WorkflowMojo extends AbstractMojo {
 		if (mappedPath != null) {
 			return new URL("file:" + mappedPath);
 		} else {
-			return artifact.getFile().toURL();
+			return artifact.getFile().toURI().toURL();
 		}
 	}
 
