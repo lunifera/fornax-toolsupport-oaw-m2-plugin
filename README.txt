@@ -16,3 +16,10 @@ mvn release:clean
 
 
 
+====================
+plugin.xml
+====================
+A plugin.xml has been copied to src/main/resources/META-INF/maven. This descriptor will be generated
+automatically when packaging the plugin. The one checked in is for testing purposes. It is required
+when you try to execute the plugin with m2e workspace resolution. From time to time it should be copied
+from a packaged Jar.
