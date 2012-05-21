@@ -74,12 +74,12 @@
   </contributors>
   <scm>
     <connection>
-			scm:svn:https://fornax.svn.sourceforge.net/svnroot/fornax/tags/fornax-oaw-m2-plugin-3.3.1
+			scm:svn:https://fornax.svn.sourceforge.net/svnroot/fornax/tags/fornax-oaw-m2-plugin-${project.version}
 		</connection>
     <developerConnection>
-			scm:svn:https://fornax.svn.sourceforge.net/svnroot/fornax/tags/fornax-oaw-m2-plugin-3.3.1
+			scm:svn:https://fornax.svn.sourceforge.net/svnroot/fornax/tags/fornax-oaw-m2-plugin-${project.version}
 		</developerConnection>
-    <url>http://fisheye3.cenqua.com/browse/fornax/tags/fornax-oaw-m2-plugin-3.3.1</url>
+    <url>http://fisheye3.cenqua.com/browse/fornax/tags/fornax-oaw-m2-plugin-${project.version}</url>
   </scm>
   <repositories>
     <repository>
@@ -209,7 +209,7 @@
               <goal>install-file</goal>
             </goals>
             <configuration>
-              <file>${basedir}/target/${build.finalName}.jar</file>
+              <file>${basedir}/target/${project.build.finalName}.jar</file>
               <groupId>org.fornax.toolsupport</groupId>
               <artifactId>fornax-oaw-m2-plugin</artifactId>
               <version>${project.version}</version>
