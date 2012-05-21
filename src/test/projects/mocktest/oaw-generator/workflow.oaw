@@ -11,10 +11,12 @@
 		<outputSlot value="model"/>
 	</component>
 
+	<!--
     <component id="dirCleaner"
 		class="org.openarchitectureware.workflow.common.DirectoryCleaner">
 		<directories value="${outlet.src.dir}, ${outlet.res.dir}"/>
 	</component>
+	-->
 
     <!-- xpand -->
    	<!--<component id="generator" class="org.openarchitectureware.xpand2.Generator">
