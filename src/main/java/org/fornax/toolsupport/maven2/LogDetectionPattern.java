@@ -65,6 +65,20 @@ public class LogDetectionPattern {
 		default: throw new IllegalStateException();
 		}
 	}
+	
+	public void setLevelAsString (String level) {
+		if (ERROR_S.equals(level)) {
+			this.level = ERROR;
+		} else if (WARNING_S.equals(level)) {
+			this.level = WARNING;
+		} else if (INFO_S.equals(level)) {
+			this.level = INFO;
+		} else if (DEBUG_S.equals(level)) {
+			this.level = DEBUG;
+		} else {
+			throw new IllegalArgumentException(level);
+		}
+	}
 
 	public String getDetectionString() {
 		if (detectionString == null) {
