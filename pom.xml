@@ -77,7 +77,7 @@
 			scm:svn:https://fornax.svn.sourceforge.net/svnroot/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/trunk
 		</connection>
     <developerConnection>
-			scm:svn:https://https://fornax.svn.sourceforge.net/svnroot/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/trunk
+			scm:svn:https://fornax.svn.sourceforge.net/svnroot/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/trunk
 		</developerConnection>
     <url>http://fisheye3.cenqua.com/browse/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/trunk</url>
   </scm>
