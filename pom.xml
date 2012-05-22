@@ -254,7 +254,7 @@
         <artifactId>maven-release-plugin</artifactId>
         <version>2.3</version>
         <configuration>
-          <tagBase>https://fornax.svn.sourceforge.net/svnroot/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/trunk</tagBase>
+          <tagBase>https://fornax.svn.sourceforge.net/svnroot/fornax/trunk/toolsupport/maven2/fornax-toolsupport-oaw-m2-plugin/tags</tagBase>
         </configuration>
       </plugin>
     </plugins>
