@@ -247,6 +247,18 @@
       </plugin>
 
     </plugins>
+    <pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.3</version>
+        <configuration>
+          <tagBase>https://fornax.svn.sourceforge.net/svnroot/fornax/tags/fornax-oaw-m2-plugin</tagBase>
+        </configuration>
+      </plugin>
+    </plugins>
+    </pluginManagement>
   </build>
   <reporting>
     <plugins>
